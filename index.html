@@ -64,7 +64,7 @@
                         <input type="text" id="empName" placeholder="Employee Name">
                         <input type="text" id="empPhone" placeholder="923xxxxxxxxx">
                     </div>
-                    <button onclick="handleIssue()" style="background:var(--qb-red); color:white; border:none; padding:15px; border-radius:8px; width:100%; cursor:pointer; font-weight:bold;">Confirm & Generate Record ✅</button>
+                    <button onclick="handleIssue()" style="background:var(--qb-red); color:white; border:none; padding:15px; border-radius:8px; width:100%; cursor:pointer; font-weight:bold; font-size:16px;">Confirm & Generate Record ✅</button>
                     <table>
                         <thead><tr><th>Asset & Serial</th><th>Employee</th><th>Issued Date</th><th>Action Center</th></tr></thead>
                         <tbody id="activeBody"></tbody>
@@ -83,7 +83,7 @@
                         <tbody id="storeBody"></tbody>
                     </table>
                     <h3 style="color:var(--qb-red); margin-top:40px;">Master Movement History</h3>
-                    <input type="text" id="searchHist" placeholder="Search by name, serial or date..." onkeyup="renderUI()">
+                    <input type="text" id="searchHist" placeholder="Search..." onkeyup="renderUI()">
                     <table>
                         <thead><tr><th>Issue Date</th><th>Usage</th><th>Asset Detail</th><th>Employee</th><th>Return Date</th></tr></thead>
                         <tbody id="historyBody"></tbody>
@@ -94,39 +94,28 @@
             <div class="card" style="text-align:center;">
                 <h3 style="color:var(--qb-blue)">Inventory Status</h3>
                 <canvas id="chart"></canvas>
-                <div id="statsBox" style="text-align:left; margin-top:25px; line-height:2.5; font-size:16px;"></div>
+                <div id="statsBox" style="text-align:left; margin-top:25px; line-height:2; font-size:16px;"></div>
             </div>
         </div>
     </div>
 
 <script>
-    // --- UPDATED SYNC URL ---
     const DATABASE_URL = "https://script.google.com/macros/s/AKfycbzjHUE3Ygzlnc3ZSlzpvIHtvUTzd7zaGRmBBcsqVlXi8EK_W2dD3ZLIaAJq69aB-BqfKA/exec";
-
-    let stock = [];
-    let logs = [];
-    let myChart;
+    let stock = [], logs = [], myChart;
 
     function initSecurity() { if(!localStorage.getItem('QB_SEC')) localStorage.setItem('QB_SEC', '0000'); }
     function checkAccess(val) { if(val === localStorage.getItem('QB_SEC')) { document.getElementById('lockScreen').style.display='none'; document.getElementById('app').style.display='block'; loadFromCloud(); } }
 
     async function loadFromCloud() {
         const label = document.getElementById('syncLabel');
-        label.innerText = "Syncing...";
         try {
-            // Added redirect handling to bypass Offline Mode error
-            const response = await fetch(DATABASE_URL);
-            if (!response.ok) throw new Error('Network response was not ok');
-            const data = await response.json();
-            stock = data.stock || [];
-            logs = data.logs || [];
-            label.innerText = "Live Sync Active";
-            label.style.color = "green";
+            const res = await fetch(DATABASE_URL);
+            const data = await res.json();
+            stock = data.stock || []; logs = data.logs || [];
+            label.innerText = "Live Sync Active"; label.style.color = "green";
             renderUI();
         } catch(e) { 
-            console.error("Sync failed, using local storage", e);
-            label.innerText = "Offline Mode";
-            label.style.color = "red";
+            label.innerText = "Offline Mode"; label.style.color = "red";
             stock = JSON.parse(localStorage.getItem('QB_STK_V19')) || [];
             logs = JSON.parse(localStorage.getItem('QB_LOG_V19')) || [];
             renderUI();
@@ -138,16 +127,9 @@
         localStorage.setItem('QB_LOG_V19', JSON.stringify(logs));
         renderUI();
         try {
-            await fetch(DATABASE_URL, {
-                method: 'POST',
-                mode: 'no-cors', // Essential for Google Apps Script
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({stock, logs})
-            });
+            await fetch(DATABASE_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({stock, logs}) });
             document.getElementById('syncLabel').innerText = "Live Sync Active";
-        } catch(e) { 
-            document.getElementById('syncLabel').innerText = "Sync Error";
-        }
+        } catch(e) { document.getElementById('syncLabel').innerText = "Sync Error"; }
     }
 
     function nav(p) {
@@ -169,6 +151,7 @@
             stock[i].status = 'Issued';
             logs.unshift({ asset: stock[i].name, sn: stock[i].serial, name: n, ph: p, date: new Date().toLocaleDateString('en-GB'), iso: new Date().toISOString(), rDate: '-', status: 'Assigned' });
             syncToCloud();
+            document.getElementById('empName').value=''; document.getElementById('empPhone').value='';
         }
     }
 
@@ -189,7 +172,9 @@
         stock.forEach((s, i) => { if(s.status === 'Available') sB.innerHTML += `<tr><td><b>${s.name}</b></td><td>${s.serial}</td><td><b style="color:green">Available</b></td><td><button onclick="stock.splice(${i},1);syncToCloud()" style="color:red;border:none;background:none;cursor:pointer;">DELETE</button></td></tr>`; });
 
         const aB = document.getElementById('activeBody'); aB.innerHTML = '';
-        logs.forEach((l, i) => { if(l.status === 'Assigned') aB.innerHTML += `<tr><td><b>${l.asset}</b><br><small>${l.sn}</small></td><td>${l.name}</td><td>${l.date}</td><td><button class="btn-wa" onclick="sendWA(${i})">WA</button><button class="btn-pdf" onclick="genPDF(${i})">PDF</button><button class="btn-ret" onclick="handleReturn(${i})">RET</button></td></tr>`; });
+        logs.forEach((l, i) => { 
+            if(l.status === 'Assigned') aB.innerHTML += `<tr><td><b>${l.asset}</b><br><small>${l.sn}</small></td><td>${l.name}</td><td>${l.date}</td><td><button class="btn-wa" onclick="sendWA(${i})">WA</button><button class="btn-pdf" onclick="genPDF(${i})">PDF</button><button class="btn-ret" onclick="handleReturn(${i})">RET</button></td></tr>`; 
+        });
 
         const hB = document.getElementById('historyBody'); hB.innerHTML = '';
         logs.forEach(l => { if(l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q)) hB.innerHTML += `<tr><td>${l.date}</td><td><span class="usage-tag">Days</span></td><td><b>${l.asset}</b><br><small>${l.sn}</small></td><td>${l.name}</td><td style="color:green;font-weight:bold">${l.rDate}</td></tr>`; });
@@ -200,12 +185,24 @@
         myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { labels: ['In','Out'], datasets:[{data:[cin,cout],backgroundColor:['#10b981','#ef4444'],borderWidth:0}]}, options:{cutout:'80%',plugins:{legend:{display:false}}}});
     }
 
-    function sendWA(idx) { const l = logs[idx]; window.open(`https://wa.me/${l.ph}?text=Asset: ${l.asset}%0ASerial: ${l.sn}`, '_blank'); }
-    function genPDF(idx) { const l = logs[idx]; const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.text(`Handover Certificate - ${l.name}`, 10, 10); doc.text(`Asset: ${l.asset}`, 10, 20); doc.save(`${l.name}.pdf`); }
+    function sendWA(idx) {
+        const l = logs[idx];
+        let phone = l.ph.toString().trim();
+        if (phone.startsWith('0')) phone = '92' + phone.substring(1);
+        else if (!phone.startsWith('92')) phone = '92' + phone;
+        let msg = `*QistBazaar Asset Handover*%0A%0AAsset: *${l.asset}*%0ASerial: *${l.sn}*%0AIssued to: *${l.name}*`;
+        window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+    }
+
+    function genPDF(idx) {
+        const l = logs[idx]; const { jsPDF } = window.jspdf; const doc = new jsPDF();
+        doc.text(`Handover Certificate: ${l.name}`, 10, 10);
+        doc.text(`Asset: ${l.asset} (${l.sn})`, 10, 20);
+        doc.save(`QB_${l.name}.pdf`);
+    }
+
     function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Logs"), "QB_Report.xlsx"); }
-    function factoryReset() { if(confirm("Clear All Cloud Data?")) { stock=[]; logs=[]; syncToCloud(); } }
-    
-    // Auto Refresh
+    function factoryReset() { if(confirm("Purge Cloud Data?")) { stock=[]; logs=[]; syncToCloud(); } }
     setInterval(loadFromCloud, 30000);
 </script>
 </body>
