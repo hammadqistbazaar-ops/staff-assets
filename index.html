@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>QistBazaar ERP V25.0 - Live Cloud</title>
+    <title>QistBazaar ERP V26.0 - Live Search</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -11,47 +11,44 @@
         :root { --qb-blue: #1e40af; --qb-red: #e11d48; --bg: #f3f4f6; }
         body { background: var(--bg); font-family: 'Segoe UI', sans-serif; margin: 0; }
         #lockScreen { position: fixed; inset: 0; background: var(--qb-blue); display: flex; justify-content: center; align-items: center; z-index: 10000; }
-        .login-card { background: white; padding: 40px; border-radius: 20px; text-align: center; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .login-card { background: white; padding: 40px; border-radius: 20px; text-align: center; width: 320px; }
         .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: white; border-bottom: 2px solid #e2e8f0; }
         .logo { font-size: 24px; font-weight: bold; color: var(--qb-blue); }
         .logo span { color: var(--qb-red); }
         .tabs { display: flex; padding: 20px 30px 0; gap: 10px; }
-        .tab-btn { padding: 12px 25px; border: none; border-radius: 10px 10px 0 0; cursor: pointer; font-weight: bold; background: #e2e8f0; color: #64748b; }
+        .tab-btn { padding: 12px 25px; border: none; border-radius: 10px 10px 0 0; cursor: pointer; font-weight: bold; background: #e2e8f0; }
         .tab-btn.active { background: white; color: var(--qb-blue); border-bottom: 3px solid var(--qb-red); }
         .main-grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; padding: 0 30px 30px; }
         .card { background: white; padding: 25px; border-radius: 0 15px 15px 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; font-size: 14px; }
+        input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th { background: #f8fafc; text-align: left; padding: 12px; font-size: 11px; color: var(--qb-blue); border-bottom: 2px solid #edf2f7; text-transform: uppercase; }
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-        .btn-wa { background: #22c55e; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .btn-pdf { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .btn-ret { background: #facc15; color: #0f172a; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        #syncLabel { font-size: 12px; font-weight: bold; margin-right: 15px; }
+        .search-box { background: #fff; border: 2px solid var(--qb-blue); margin-bottom: 15px; padding-left: 35px; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="blue" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>'); background-repeat: no-repeat; background-position: 10px center; }
     </style>
 </head>
 <body onload="initSecurity()">
 
     <div id="lockScreen">
         <div class="login-card">
-            <div class="logo" style="margin-bottom:15px">Qist<span>Bazaar</span></div>
+            <div class="logo">Qist<span>Bazaar</span></div>
             <p>Enter Security PIN</p>
-            <input type="password" id="pinInput" maxlength="4" style="text-align:center; font-size:30px; letter-spacing:10px;" onkeyup="checkAccess(this.value)">
+            <input type="password" id="pinInput" maxlength="4" style="text-align:center; font-size:30px;" onkeyup="checkAccess(this.value)">
         </div>
     </div>
 
     <div id="app" style="display:none">
         <div class="navbar">
-            <div class="logo">Qist<span>Bazaar</span> <span>PRO V25.0 (LIVE)</span></div>
+            <div class="logo">Qist<span>Bazaar</span> <span>PRO V26.0</span></div>
             <div>
                 <span id="syncLabel">Connecting...</span>
-                <button onclick="exportXLS()" style="background:#10b981; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">Export Excel</button>
+                <button onclick="exportXLS()" style="background:#10b981; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">Export Excel</button>
             </div>
         </div>
 
         <div class="tabs">
             <button id="tab1" class="tab-btn active" onclick="nav('issue')">Issue Asset</button>
-            <button id="tab2" class="tab-btn" onclick="nav('warehouse')">Warehouse Management</button>
+            <button id="tab2" class="tab-btn" onclick="nav('warehouse')">Warehouse & History</button>
         </div>
 
         <div class="main-grid">
@@ -67,9 +64,10 @@
                     </div>
                     <button onclick="handleIssue()" style="background:var(--qb-red); color:white; border:none; padding:15px; border-radius:8px; width:100%; cursor:pointer; font-weight:bold;">Confirm Issuance ✅</button>
 
-                    <h3 style="margin-top:35px;">Active Handovers</h3>
+                    <h3 style="margin-top:35px;">Active Staff Assets</h3>
+                    <input type="text" id="searchActive" class="search-box" placeholder="Search by Staff, CNIC or Serial..." onkeyup="renderUI()">
                     <table>
-                        <thead><tr><th>Asset</th><th>Staff (CNIC)</th><th>Branch</th><th>Date</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>Asset</th><th>Staff (CNIC)</th><th>Branch</th><th>Date</th><th>Action</th></tr></thead>
                         <tbody id="activeBody"></tbody>
                     </table>
                 </div>
@@ -77,29 +75,36 @@
                 <div id="viewWarehouse" style="display:none">
                     <h3>Inventory In-Take</h3>
                     <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-                        <input type="text" id="addMake" placeholder="Make (e.g. HP)">
-                        <input type="text" id="addModel" placeholder="Model (e.g. G8)">
+                        <input type="text" id="addMake" placeholder="Make (e.g. Infinix)">
+                        <input type="text" id="addModel" placeholder="Model (e.g. Hot 40)">
                         <input type="text" id="addSerial" placeholder="Serial/IMEI">
                     </div>
                     <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:150px; cursor:pointer;">+ Add Stock</button>
 
-                    <h3 style="margin-top:30px;">Available Stock</h3>
+                    <h3 style="margin-top:30px;">Available Stock (Warehouse)</h3>
+                    <input type="text" id="searchStore" class="search-box" placeholder="Search Make, Model or Serial..." onkeyup="renderUI()">
                     <table>
                         <thead><tr><th>Make</th><th>Model</th><th>Serial</th><th>Status</th><th>Action</th></tr></thead>
                         <tbody id="storeBody"></tbody>
+                    </table>
+
+                    <h3 style="margin-top:40px; border-top:2px solid #eee; padding-top:20px; color:var(--qb-red);">Master History (All Logs)</h3>
+                    <input type="text" id="searchHist" class="search-box" placeholder="Search Master Records..." onkeyup="renderUI()">
+                    <table>
+                        <thead><tr><th>Date</th><th>Staff</th><th>Asset</th><th>Serial</th><th>Return</th></tr></thead>
+                        <tbody id="historyBody"></tbody>
                     </table>
                 </div>
             </div>
 
             <div class="card" style="text-align:center;">
                 <canvas id="chart"></canvas>
-                <div id="statsBox" style="text-align:left; margin-top:25px;"></div>
+                <div id="statsBox" style="text-align:left; margin-top:25px; line-height:2;"></div>
             </div>
         </div>
     </div>
 
 <script>
-    // --- LIVE CONFIGURATION ---
     const API_KEY = "$2a$10$zs0AXFgLuXZDitAlBISdl.N.tuEhmZpkUhIXK6hOM/K89PbZgVRES";
     const BIN_ID = "69946ddd43b1c97be985ee40";
     const URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
@@ -119,7 +124,7 @@
             logs = record.logs || [];
             label.innerText = "Live Sync Active"; label.style.color = "green";
             renderUI();
-        } catch(e) { label.innerText = "Connection Error"; label.style.color = "red"; }
+        } catch(e) { label.innerText = "Offline Mode"; label.style.color = "red"; }
     }
 
     async function pushData() {
@@ -130,10 +135,9 @@
                 headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY },
                 body: JSON.stringify({ stock, logs })
             });
-        } catch(e) { console.log("Sync Failed"); }
+        } catch(e) { console.log("Push Error"); }
     }
 
-    // Nav, Add, Issue, Return functions (Logic from V24.0)
     function nav(p) {
         document.getElementById('viewIssue').style.display = p==='issue'?'block':'none';
         document.getElementById('viewWarehouse').style.display = p==='warehouse'?'block':'none';
@@ -151,7 +155,7 @@
         const i = document.getElementById('pickAsset').value, n = document.getElementById('empName').value, c = document.getElementById('empCnic').value, d = document.getElementById('empDept').value, p = document.getElementById('empPhone').value;
         if(i!=="" && n && c) {
             const item = stock[i]; item.status = 'Issued';
-            logs.unshift({ make: item.make, model: item.model, sn: item.serial, name: n, cnic: c, dept: d, ph: p, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned' });
+            logs.unshift({ make: item.make, model: item.model, sn: item.serial, name: n, cnic: c, dept: d, ph: p, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned', rDate: '-' });
             pushData();
         }
     }
@@ -159,24 +163,45 @@
     function handleReturn(idx) {
         const log = logs[idx]; const item = stock.find(s => s.serial === log.sn);
         if(item) item.status = 'Available';
-        log.status = 'Returned'; pushData();
+        log.status = 'Returned'; log.rDate = new Date().toLocaleDateString('en-GB'); pushData();
     }
 
     function renderUI() {
+        const qActive = document.getElementById('searchActive').value.toLowerCase();
+        const qStore = document.getElementById('searchStore').value.toLowerCase();
+        const qHist = document.getElementById('searchHist').value.toLowerCase();
+
+        // 1. Dropdown
         const sel = document.getElementById('pickAsset');
-        sel.innerHTML = '<option value="">-- Select Asset --</option>';
+        sel.innerHTML = '<option value="">-- Select Asset From Warehouse --</option>';
         stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.make} ${s.model} (${s.serial})</option>`; });
 
+        // 2. Warehouse Table (Filtered)
         const sB = document.getElementById('storeBody'); sB.innerHTML = '';
-        stock.forEach((s, i) => { if(s.status === 'Available') sB.innerHTML += `<tr><td>${s.make}</td><td>${s.model}</td><td>${s.serial}</td><td>Available</td><td><button onclick="stock.splice(${i},1);pushData()">DEL</button></td></tr>`; });
+        stock.forEach((s, i) => { 
+            if(s.status === 'Available' && (s.make.toLowerCase().includes(qStore) || s.serial.toLowerCase().includes(qStore))) {
+                sB.innerHTML += `<tr><td>${s.make}</td><td>${s.model}</td><td>${s.serial}</td><td><b style="color:green">Available</b></td><td><button onclick="stock.splice(${i},1);pushData()" style="color:red;border:none;background:none;cursor:pointer;">DEL</button></td></tr>`; 
+            }
+        });
 
+        // 3. Active Staff Table (Filtered)
         const aB = document.getElementById('activeBody'); aB.innerHTML = '';
         logs.forEach((l, i) => {
-            if(l.status === 'Assigned') aB.innerHTML += `<tr><td><b>${l.make} ${l.model}</b><br><small>${l.sn}</small></td><td>${l.name}<br><small>${l.cnic}</small></td><td>${l.dept}</td><td>${l.date}</td><td><button class="btn-wa" onclick="sendWA(${i})">WA</button> <button class="btn-ret" onclick="handleReturn(${i})">RET</button></td></tr>`;
+            if(l.status === 'Assigned' && (l.name.toLowerCase().includes(qActive) || l.sn.toLowerCase().includes(qActive) || l.cnic.includes(qActive))) {
+                aB.innerHTML += `<tr><td><b>${l.make} ${l.model}</b><br><small>${l.sn}</small></td><td>${l.name}<br><small>${l.cnic}</small></td><td>${l.dept}</td><td>${l.date}</td><td><button class="btn-wa" style="background:#22c55e;color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;" onclick="sendWA(${i})">WA</button> <button style="background:#facc15;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;" onclick="handleReturn(${i})">RET</button></td></tr>`;
+            }
+        });
+
+        // 4. Master History Table (Filtered)
+        const hB = document.getElementById('historyBody'); hB.innerHTML = '';
+        logs.forEach(l => {
+            if(l.name.toLowerCase().includes(qHist) || l.sn.toLowerCase().includes(qHist) || l.cnic.includes(qHist)) {
+                hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.make}</td><td>${l.sn}</td><td style="color:green;font-weight:bold;">${l.rDate}</td></tr>`;
+            }
         });
 
         const cin = stock.filter(x => x.status==='Available').length, cout = stock.filter(x => x.status==='Issued').length;
-        document.getElementById('statsBox').innerHTML = `Warehouse: <b>${cin}</b> | Staff: <b>${cout}</b>`;
+        document.getElementById('statsBox').innerHTML = `Warehouse Store: <b>${cin}</b><br>Active with Staff: <b>${cout}</b><br>Total Inventory: <b>${stock.length}</b>`;
         if(myChart) myChart.destroy();
         myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { labels: ['In','Out'], datasets:[{data:[cin,cout],backgroundColor:['#10b981','#ef4444'],borderWidth:0}]}, options:{cutout:'80%',plugins:{legend:{display:false}}}});
     }
@@ -185,11 +210,11 @@
         const l = logs[idx];
         let p = l.ph.toString().trim();
         let cleanP = p.startsWith('0') ? '92' + p.substring(1) : (p.startsWith('92') ? p : '92' + p);
-        window.location.href = `whatsapp://send?phone=${cleanP}&text=Salam ${l.name}! Asset ${l.make} is Assigned to you.`;
+        window.location.href = `whatsapp://send?phone=${cleanP}&text=Salam *${l.name}*! Asset *${l.make} ${l.model}* Serial: *${l.sn}* is Assigned to you. Branch: *${l.dept}*.`;
     }
 
-    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Logs"), "QB_Report.xlsx"); }
-    setInterval(pullData, 30000); // 30 sec auto refresh
+    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Full_Log"), "QB_Asset_Report.xlsx"); }
+    setInterval(pullData, 30000);
 </script>
 </body>
 </html>
