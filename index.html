@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QistBazaar ERP V19.5 - Asset Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -46,8 +45,8 @@
         <div class="navbar">
             <div class="logo">Qist<span>Bazaar</span> <span>PRO V19.5</span></div>
             <div>
-                <span id="syncStatus" style="font-size:11px; color:green; margin-right:10px;">● Cloud Sync Active</span>
                 <button onclick="exportXLS()" style="background:#10b981; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">Export Excel</button>
+                <button onclick="factoryReset()" style="background:#64748b; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; margin-left:5px;">Clear All</button>
             </div>
         </div>
 
@@ -81,10 +80,18 @@
                         <input type="text" id="addSerial" placeholder="Serial/IMEI">
                         <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">+ Add Stock</button>
                     </div>
+
                     <h3 style="color:var(--qb-blue); margin-top:30px;">Current Stock in Warehouse</h3>
                     <table>
                         <thead><tr><th>Item Name</th><th>Serial Number</th><th>Status</th><th>Remove</th></tr></thead>
                         <tbody id="storeBody"></tbody>
+                    </table>
+
+                    <h3 style="color:var(--qb-red); margin-top:40px; border-top:2px solid #eee; padding-top:20px;">Master Movement History</h3>
+                    <input type="text" id="searchHist" placeholder="Search by name, serial or date..." onkeyup="renderUI()">
+                    <table>
+                        <thead><tr><th>Issue Date</th><th>Usage</th><th>Asset Detail</th><th>Employee</th><th>Return Date</th></tr></thead>
+                        <tbody id="historyBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -98,26 +105,12 @@
     </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx933T6DzGCat8065OJRCMV8lJmiVBpjUlbkO2p0SqW6Psd1YhKpAuP1DsDTrVp4P0l/exec";
-
     function initSecurity() { if(!localStorage.getItem('QB_SEC')) localStorage.setItem('QB_SEC', '0000'); }
-    function checkAccess(val) { if(val === localStorage.getItem('QB_SEC')) { document.getElementById('lockScreen').style.display='none'; document.getElementById('app').style.display='block'; syncData(); } }
+    function checkAccess(val) { if(val === localStorage.getItem('QB_SEC')) { document.getElementById('lockScreen').style.display='none'; document.getElementById('app').style.display='block'; renderUI(); } }
 
     let stock = JSON.parse(localStorage.getItem('QB_STK_V19')) || [];
     let logs = JSON.parse(localStorage.getItem('QB_LOG_V19')) || [];
     let myChart;
-
-    async function syncData() {
-        renderUI();
-        try {
-            const res = await fetch(SCRIPT_URL);
-            const cloudData = await res.json();
-            if(cloudData.length > 0) {
-                // Cloud se data lekar local mein update karna (Sync logic)
-                console.log("Cloud synced");
-            }
-        } catch(e) { console.log("Offline mode"); }
-    }
 
     function nav(p) {
         document.getElementById('viewIssue').style.display = p==='issue'?'block':'none';
@@ -126,27 +119,35 @@
         document.getElementById('tab2').classList.toggle('active', p==='warehouse');
     }
 
-    async function handleAdd() {
+    function handleAdd() {
         const n = document.getElementById('addName').value, s = document.getElementById('addSerial').value;
         if(!n || !s) return alert("Details enter karein!");
-        const newItem = { name: n, serial: s, status: 'Available' };
-        stock.push(newItem);
+        stock.push({ name: n, serial: s, status: 'Available' });
         saveData();
-        // Cloud par bhejna
-        fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({item: n, sn: s, name: 'Warehouse', ph: '-', status: 'Stock In'}) });
         document.getElementById('addName').value=''; document.getElementById('addSerial').value='';
     }
 
-    async function handleIssue() {
+    function handleIssue() {
         const i = document.getElementById('pickAsset').value, n = document.getElementById('empName').value, p = document.getElementById('empPhone').value;
         if(i==="" || !n || !p) return alert("Tamam fields bharein!");
         const item = stock[i]; item.status = 'Issued';
-        const newLog = { asset: item.name, sn: item.serial, name: n, ph: p, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned' };
-        logs.unshift(newLog);
+        logs.unshift({ 
+            asset: item.name, sn: item.serial, name: n, ph: p, 
+            date: new Date().toLocaleDateString('en-GB'), 
+            iso: new Date().toISOString(), 
+            rDate: '-', status: 'Assigned' 
+        });
         saveData();
-        // Cloud par bhejna
-        fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({item: item.name, sn: item.serial, name: n, ph: p, status: 'Issued'}) });
         document.getElementById('empName').value=''; document.getElementById('empPhone').value='';
+    }
+
+    function handleReturn(idx) {
+        const log = logs[idx]; 
+        const item = stock.find(s => s.serial === log.sn);
+        if(item) item.status = 'Available';
+        log.status = 'Returned'; 
+        log.rDate = new Date().toLocaleDateString('en-GB');
+        saveData();
     }
 
     function saveData() {
@@ -156,42 +157,80 @@
     }
 
     function renderUI() {
+        const q = document.getElementById('searchHist').value.toLowerCase();
         const sel = document.getElementById('pickAsset');
-        sel.innerHTML = '<option value="">-- Select Available Item --</option>';
+        sel.innerHTML = '<option value="">-- Select Available Item From Warehouse --</option>';
         stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.name} (SN: ${s.serial})</option>`; });
 
         const sB = document.getElementById('storeBody'); sB.innerHTML = '';
-        stock.forEach((s, i) => { if(s.status === 'Available') sB.innerHTML += `<tr><td><b>${s.name}</b></td><td>${s.serial}</td><td><b style="color:green">Available</b></td><td><button onclick="stock.splice(${i},1);saveData()" style="color:red;border:none;background:none;cursor:pointer;">DEL</button></td></tr>`; });
+        stock.forEach((s, i) => { if(s.status === 'Available') sB.innerHTML += `<tr><td><b>${s.name}</b></td><td>${s.serial}</td><td><b style="color:green">Available</b></td><td><button onclick="stock.splice(${i},1);saveData()" style="color:red;border:none;background:none;cursor:pointer;font-weight:bold;">DELETE</button></td></tr>`; });
 
         const aB = document.getElementById('activeBody'); aB.innerHTML = '';
         logs.forEach((l, i) => {
             if(l.status === 'Assigned') {
-                aB.innerHTML += `<tr><td><b>${l.asset}</b><br><small>${l.sn}</small></td><td>${l.name}</td><td>${l.date}</td>
-                    <td><button class="btn-wa" onclick="sendWA(${i})">WA</button><button class="btn-pdf" onclick="genPDF(${i})">PDF</button></td></tr>`;
+                aB.innerHTML += `<tr>
+                    <td><b>${l.asset}</b><br><small>${l.sn}</small></td>
+                    <td>${l.name}</td>
+                    <td>${l.date}</td>
+                    <td>
+                        <button class="btn-wa" onclick="sendWA(${i})">WHATSAPP</button>
+                        <button class="btn-pdf" onclick="genPDF(${i})">PDF SLIP</button>
+                        <button class="btn-ret" onclick="handleReturn(${i})">RETURN</button>
+                    </td>
+                </tr>`;
+            }
+        });
+
+        const hB = document.getElementById('historyBody'); hB.innerHTML = '';
+        logs.forEach(l => {
+            if(l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q) || l.asset.toLowerCase().includes(q)) {
+                const diff = l.status==='Returned'?'Closed':Math.floor((new Date()-new Date(l.iso))/86400000)+' Days';
+                hB.innerHTML += `<tr>
+                    <td>${l.date}</td>
+                    <td><span class="usage-tag">${diff}</span></td>
+                    <td><b>${l.asset}</b><br><small>${l.sn}</small></td>
+                    <td>${l.name}</td>
+                    <td style="color:green; font-weight:bold;">${l.rDate}</td>
+                </tr>`;
             }
         });
 
         const cin = stock.filter(x => x.status==='Available').length;
         const cout = stock.filter(x => x.status==='Issued').length;
-        document.getElementById('statsBox').innerHTML = `Store: <b>${cin}</b> | Issued: <b>${cout}</b>`;
+        document.getElementById('statsBox').innerHTML = `Warehouse Store: <b>${cin}</b><br>Active with Staff: <b>${cout}</b><hr>Grand Total: <b>${stock.length}</b>`;
         if(myChart) myChart.destroy();
         myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { labels: ['In','Out'], datasets:[{data:[cin,cout],backgroundColor:['#10b981','#ef4444'],borderWidth:0}]}, options:{cutout:'80%',plugins:{legend:{display:false}}}});
     }
 
-    function sendWA(idx) {
-        const l = logs[idx];
-        window.location.href = `whatsapp://send?phone=${l.ph}&text=Salam *${l.name}*, Asset: *${l.asset}* (${l.sn}) issued to you.`;
+    function sendWA(index) {
+        const item = logs[index];
+        let phone = item.ph.toString().trim();
+        let cleanPhone = phone.startsWith('0') ? '92' + phone.substring(1) : phone;
+        
+        let msg = `Salam *${item.name}*!%0A%0A` +
+                  `Asset Issued: *${item.asset}*%0A` +
+                  `Serial/IMEI: *${item.sn}*%0A` +
+                  `Date: *${item.date}*%0A%0A` +
+                  `_QistBazaar Asset Management Pro_`;
+
+        // Updated for better compatibility
+        window.open(`https://wa.me/${cleanPhone}?text=${msg}`, '_blank');
     }
 
     function genPDF(idx) {
         const l = logs[idx];
-        const { jsPDF } = window.jspdf; const doc = new jsPDF();
-        doc.text("QistBazaar Handover", 10, 10);
-        doc.text(`Asset: ${l.asset} | SN: ${l.sn} | To: ${l.name}`, 10, 20);
-        doc.save(`Slip_${l.name}.pdf`);
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(22); doc.setTextColor(30, 64, 175); doc.text("QistBazaar", 105, 20, {align:"center"});
+        doc.setFontSize(14); doc.setTextColor(100); doc.text("Asset Handover Certificate", 105, 30, {align:"center"});
+        doc.autoTable({ startY: 45, head: [['Detail', 'Value']], body: [['Asset Name', l.asset],['Serial/IMEI', l.sn],['Issued To', l.name],['Contact', l.ph],['Issue Date', l.date],['Status', 'Assigned & Verified']] });
+        doc.text("_________________", 30, 150); doc.text("Employee Sign", 30, 160);
+        doc.text("_________________", 130, 150); doc.text("Admin Sign", 130, 160);
+        doc.save(`Handover_${l.name}.pdf`);
     }
 
-    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Logs"), "Report.xlsx"); }
+    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Logs"), "QB_Asset_Report.xlsx"); }
+    function factoryReset() { if(confirm("Kya aap waqai saara data khatam karna chahte hain?")) { localStorage.clear(); location.reload(); } }
 </script>
 </body>
 </html>
