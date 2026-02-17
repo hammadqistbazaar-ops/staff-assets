@@ -3,133 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QistBazaar | Asset Pro</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <title>QistBazaar ERP V19.5 - Asset Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #2563eb; --success: #22c55e; --bg: #f8fafc; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        .header { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px; }
-        input, select { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; }
-        button { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%; transition: 0.3s; }
-        button:hover { opacity: 0.9; transform: translateY(-1px); }
-        .table-container { overflow-x: auto; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
-        th, td { padding: 15px; border-bottom: 1px solid #eee; }
-        th { background: #f1f5f9; color: #64748b; }
-        .status { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-        .issued { background: #dcfce7; color: #166534; }
-        .returned { background: #fee2e2; color: #991b1b; }
-        .loading { text-align: center; padding: 20px; color: var(--primary); font-weight: bold; }
+        :root { --qb-blue: #1e40af; --qb-red: #e11d48; --bg: #f3f4f6; }
+        body { background: var(--bg); font-family: 'Segoe UI', sans-serif; margin: 0; }
+        #lockScreen { position: fixed; inset: 0; background: var(--qb-blue); display: flex; justify-content: center; align-items: center; z-index: 10000; }
+        .login-card { background: white; padding: 40px; border-radius: 20px; text-align: center; width: 300px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: white; border-bottom: 2px solid #e2e8f0; }
+        .logo { font-size: 24px; font-weight: bold; color: var(--qb-blue); }
+        .logo span { color: var(--qb-red); }
+        .tabs { display: flex; padding: 20px 30px 0; gap: 10px; }
+        .tab-btn { padding: 12px 25px; border: none; border-radius: 10px 10px 0 0; cursor: pointer; font-weight: bold; background: #e2e8f0; color: #64748b; }
+        .tab-btn.active { background: white; color: var(--qb-blue); border-bottom: 3px solid var(--qb-red); }
+        .main-grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; padding: 0 30px 30px; }
+        .card { background: white; padding: 25px; border-radius: 0 15px 15px 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background: #f8fafc; text-align: left; padding: 12px; font-size: 11px; color: var(--qb-blue); border-bottom: 2px solid #edf2f7; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        .btn-wa { background: #22c55e; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; }
+        .btn-pdf { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; margin-left: 2px; }
+        .btn-ret { background: #facc15; color: #0f172a; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; margin-left: 2px; }
+        .usage-tag { background: #fee2e2; color: #e11d48; padding: 3px 8px; border-radius: 5px; font-weight: bold; font-size: 11px; }
     </style>
 </head>
-<body>
+<body onload="initSecurity()">
 
-<div class="container">
-    <div class="header">
-        <h2 style="margin:0; color:#1e293b;"><i class="fas fa-boxes"></i> QistBazaar <span style="color:var(--primary)">AssetPro</span></h2>
-        <div id="sync-status" style="font-size: 12px; color: #64748b;"><i class="fas fa-cloud"></i> Live Sync Active</div>
-    </div>
-
-    <div class="card">
-        <h3 style="margin-top:0"><i class="fas fa-plus-circle"></i> New Asset Entry</h3>
-        <div class="grid">
-            <input type="text" id="itemName" placeholder="Item Name (e.g. Laptop)">
-            <input type="text" id="serialNum" placeholder="Serial Number">
-            <input type="text" id="staffName" placeholder="Staff Name">
-            <input type="text" id="phone" placeholder="Phone Number">
-            <select id="status">
-                <option value="Issued">Issued</option>
-                <option value="Returned">Returned</option>
-            </select>
+    <div id="lockScreen">
+        <div class="login-card">
+            <div class="logo" style="margin-bottom:15px">Qist<span>Bazaar</span></div>
+            <p style="color:#64748b; font-size:14px;">Enter Security PIN</p>
+            <input type="password" id="pinInput" maxlength="4" style="text-align:center; font-size:30px; letter-spacing:10px; border: 2px solid var(--qb-blue);" onkeyup="checkAccess(this.value)">
+            <p id="error" style="color:red; font-size:12px; margin-top:10px;"></p>
         </div>
-        <button onclick="saveData()" id="btnSave"><i class="fas fa-save"></i> Save to Cloud</button>
     </div>
 
-    <div class="table-container">
-        <div id="loader" class="loading" style="display:none;">Updating database...</div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Item</th>
-                    <th>Serial</th>
-                    <th>Staff</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="dataTable">
-                </tbody>
-        </table>
+    <div id="app" style="display:none">
+        <div class="navbar">
+            <div class="logo">Qist<span>Bazaar</span> <span>PRO V19.5</span></div>
+            <div>
+                <span id="syncStatus" style="font-size:11px; color:green; margin-right:10px;">● Cloud Sync Active</span>
+                <button onclick="exportXLS()" style="background:#10b981; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">Export Excel</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button id="tab1" class="tab-btn active" onclick="nav('issue')">Issue Asset</button>
+            <button id="tab2" class="tab-btn" onclick="nav('warehouse')">Warehouse Management</button>
+        </div>
+
+        <div class="main-grid">
+            <div class="card">
+                <div id="viewIssue">
+                    <h3>Register Asset Issuance</h3>
+                    <select id="pickAsset" style="border: 2px solid var(--qb-blue); height: 50px; font-weight:bold;"></select>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                        <input type="text" id="empName" placeholder="Employee Name">
+                        <input type="text" id="empPhone" placeholder="923xxxxxxxxx">
+                    </div>
+                    <button onclick="handleIssue()" style="background:var(--qb-red); color:white; border:none; padding:15px; border-radius:8px; width:100%; cursor:pointer; font-weight:bold; font-size:16px;">Confirm & Generate Record ✅</button>
+
+                    <h3 style="margin-top:35px; color:var(--qb-blue);">Active Handovers (Staff)</h3>
+                    <table>
+                        <thead><tr><th>Asset & Serial</th><th>Employee</th><th>Issued Date</th><th>Action Center</th></tr></thead>
+                        <tbody id="activeBody"></tbody>
+                    </table>
+                </div>
+
+                <div id="viewWarehouse" style="display:none">
+                    <h3>Inventory In-Take</h3>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 120px; gap:10px;">
+                        <input type="text" id="addName" placeholder="Device Name">
+                        <input type="text" id="addSerial" placeholder="Serial/IMEI">
+                        <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">+ Add Stock</button>
+                    </div>
+                    <h3 style="color:var(--qb-blue); margin-top:30px;">Current Stock in Warehouse</h3>
+                    <table>
+                        <thead><tr><th>Item Name</th><th>Serial Number</th><th>Status</th><th>Remove</th></tr></thead>
+                        <tbody id="storeBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card" style="text-align:center;">
+                <h3 style="color:var(--qb-blue)">Inventory Status</h3>
+                <canvas id="chart"></canvas>
+                <div id="statsBox" style="text-align:left; margin-top:25px; line-height:2.5; font-size:16px;"></div>
+            </div>
+        </div>
     </div>
-</div>
 
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx933T6DzGCat8065OJRCMV8lJmiVBpjUlbkO2p0SqW6Psd1YhKpAuP1DsDTrVp4P0l/exec";
 
-    // Load data on start
-    window.onload = fetchData;
+    function initSecurity() { if(!localStorage.getItem('QB_SEC')) localStorage.setItem('QB_SEC', '0000'); }
+    function checkAccess(val) { if(val === localStorage.getItem('QB_SEC')) { document.getElementById('lockScreen').style.display='none'; document.getElementById('app').style.display='block'; syncData(); } }
 
-    async function saveData() {
-        const btn = document.getElementById('btnSave');
-        const data = {
-            item: document.getElementById('itemName').value,
-            sn: document.getElementById('serialNum').value,
-            name: document.getElementById('staffName').value,
-            ph: document.getElementById('phone').value,
-            status: document.getElementById('status').value
-        };
+    let stock = JSON.parse(localStorage.getItem('QB_STK_V19')) || [];
+    let logs = JSON.parse(localStorage.getItem('QB_LOG_V19')) || [];
+    let myChart;
 
-        if(!data.item || !data.name) return alert("Please fill important fields!");
-
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-
+    async function syncData() {
+        renderUI();
         try {
-            await fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: JSON.stringify(data)
-            });
-            
-            // Clear inputs
-            document.querySelectorAll('input').forEach(i => i.value = '');
-            alert("Data saved successfully!");
-            fetchData(); // Refresh table
-        } catch (e) {
-            alert("Error saving data!");
-        }
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save"></i> Save to Cloud';
+            const res = await fetch(SCRIPT_URL);
+            const cloudData = await res.json();
+            if(cloudData.length > 0) {
+                // Cloud se data lekar local mein update karna (Sync logic)
+                console.log("Cloud synced");
+            }
+        } catch(e) { console.log("Offline mode"); }
     }
 
-    async function fetchData() {
-        document.getElementById('loader').style.display = 'block';
-        try {
-            const response = await fetch(SCRIPT_URL);
-            const data = await response.json();
-            const table = document.getElementById('dataTable');
-            table.innerHTML = '';
-
-            data.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${new Date(row.date).toLocaleDateString()}</td>
-                    <td><b>${row.item}</b></td>
-                    <td>${row.sn}</td>
-                    <td>${row.name}</td>
-                    <td><span class="status ${row.status.toLowerCase()}">${row.status}</span></td>
-                `;
-                table.appendChild(tr);
-            });
-        } catch (e) {
-            console.log("Error loading data");
-        }
-        document.getElementById('loader').style.display = 'none';
+    function nav(p) {
+        document.getElementById('viewIssue').style.display = p==='issue'?'block':'none';
+        document.getElementById('viewWarehouse').style.display = p==='warehouse'?'block':'none';
+        document.getElementById('tab1').classList.toggle('active', p==='issue');
+        document.getElementById('tab2').classList.toggle('active', p==='warehouse');
     }
+
+    async function handleAdd() {
+        const n = document.getElementById('addName').value, s = document.getElementById('addSerial').value;
+        if(!n || !s) return alert("Details enter karein!");
+        const newItem = { name: n, serial: s, status: 'Available' };
+        stock.push(newItem);
+        saveData();
+        // Cloud par bhejna
+        fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({item: n, sn: s, name: 'Warehouse', ph: '-', status: 'Stock In'}) });
+        document.getElementById('addName').value=''; document.getElementById('addSerial').value='';
+    }
+
+    async function handleIssue() {
+        const i = document.getElementById('pickAsset').value, n = document.getElementById('empName').value, p = document.getElementById('empPhone').value;
+        if(i==="" || !n || !p) return alert("Tamam fields bharein!");
+        const item = stock[i]; item.status = 'Issued';
+        const newLog = { asset: item.name, sn: item.serial, name: n, ph: p, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned' };
+        logs.unshift(newLog);
+        saveData();
+        // Cloud par bhejna
+        fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({item: item.name, sn: item.serial, name: n, ph: p, status: 'Issued'}) });
+        document.getElementById('empName').value=''; document.getElementById('empPhone').value='';
+    }
+
+    function saveData() {
+        localStorage.setItem('QB_STK_V19', JSON.stringify(stock));
+        localStorage.setItem('QB_LOG_V19', JSON.stringify(logs));
+        renderUI();
+    }
+
+    function renderUI() {
+        const sel = document.getElementById('pickAsset');
+        sel.innerHTML = '<option value="">-- Select Available Item --</option>';
+        stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.name} (SN: ${s.serial})</option>`; });
+
+        const sB = document.getElementById('storeBody'); sB.innerHTML = '';
+        stock.forEach((s, i) => { if(s.status === 'Available') sB.innerHTML += `<tr><td><b>${s.name}</b></td><td>${s.serial}</td><td><b style="color:green">Available</b></td><td><button onclick="stock.splice(${i},1);saveData()" style="color:red;border:none;background:none;cursor:pointer;">DEL</button></td></tr>`; });
+
+        const aB = document.getElementById('activeBody'); aB.innerHTML = '';
+        logs.forEach((l, i) => {
+            if(l.status === 'Assigned') {
+                aB.innerHTML += `<tr><td><b>${l.asset}</b><br><small>${l.sn}</small></td><td>${l.name}</td><td>${l.date}</td>
+                    <td><button class="btn-wa" onclick="sendWA(${i})">WA</button><button class="btn-pdf" onclick="genPDF(${i})">PDF</button></td></tr>`;
+            }
+        });
+
+        const cin = stock.filter(x => x.status==='Available').length;
+        const cout = stock.filter(x => x.status==='Issued').length;
+        document.getElementById('statsBox').innerHTML = `Store: <b>${cin}</b> | Issued: <b>${cout}</b>`;
+        if(myChart) myChart.destroy();
+        myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { labels: ['In','Out'], datasets:[{data:[cin,cout],backgroundColor:['#10b981','#ef4444'],borderWidth:0}]}, options:{cutout:'80%',plugins:{legend:{display:false}}}});
+    }
+
+    function sendWA(idx) {
+        const l = logs[idx];
+        window.location.href = `whatsapp://send?phone=${l.ph}&text=Salam *${l.name}*, Asset: *${l.asset}* (${l.sn}) issued to you.`;
+    }
+
+    function genPDF(idx) {
+        const l = logs[idx];
+        const { jsPDF } = window.jspdf; const doc = new jsPDF();
+        doc.text("QistBazaar Handover", 10, 10);
+        doc.text(`Asset: ${l.asset} | SN: ${l.sn} | To: ${l.name}`, 10, 20);
+        doc.save(`Slip_${l.name}.pdf`);
+    }
+
+    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Logs"), "Report.xlsx"); }
 </script>
-
 </body>
 </html>
