@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>QistBazaar ERP V28.0 - Live Cloud Fix</title>
+    <title>QistBazaar ERP V29.0 - Usage Analytics</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -26,6 +26,7 @@
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
         .btn-del { color: #ef4444; border: 1px solid #fee2e2; background: #fff5f5; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: bold; }
         .search-box { background: #fff; border: 2px solid var(--qb-blue); margin-bottom: 15px; padding-left: 35px; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="blue" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>'); background-repeat: no-repeat; background-position: 10px center; }
+        .badge-days { background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; }
     </style>
 </head>
 <body onload="initSecurity()">
@@ -40,7 +41,7 @@
 
     <div id="app" style="display:none">
         <div class="navbar">
-            <div class="logo">Qist<span>Bazaar</span> <span>LIVE V28.0</span></div>
+            <div class="logo">Qist<span>Bazaar</span> <span>LIVE V29.0</span></div>
             <div>
                 <span id="syncLabel" style="font-size: 12px; font-weight: bold; margin-right: 15px;">Connecting...</span>
                 <button onclick="exportXLS()" style="background:#10b981; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">Export Data</button>
@@ -76,23 +77,23 @@
                 <div id="viewWarehouse" style="display:none">
                     <h3>Stock In-Take</h3>
                     <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-                        <input type="text" id="addMake" placeholder="Make (e.g. HP)">
-                        <input type="text" id="addModel" placeholder="Model (e.g. G8)">
+                        <input type="text" id="addMake" placeholder="Make">
+                        <input type="text" id="addModel" placeholder="Model">
                         <input type="text" id="addSerial" placeholder="Serial/IMEI">
                     </div>
-                    <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:150px; cursor:pointer; font-weight:bold;">+ Add to Stock</button>
+                    <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:150px; cursor:pointer; font-weight:bold;">+ Add Stock</button>
 
                     <h3 style="margin-top:30px;">Warehouse Inventory</h3>
                     <input type="text" id="searchStore" class="search-box" placeholder="Search Warehouse..." onkeyup="renderUI()">
                     <table>
-                        <thead><tr><th>Make</th><th>Model</th><th>Serial</th><th>Status</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Make</th><th>Model</th><th>Serial</th><th>Action</th></tr></thead>
                         <tbody id="storeBody"></tbody>
                     </table>
 
-                    <h3 style="margin-top:40px; border-top:2px solid #eee; padding-top:20px; color:var(--qb-red);">Master Log History</h3>
-                    <input type="text" id="searchHist" class="search-box" placeholder="Search history records..." onkeyup="renderUI()">
+                    <h3 style="margin-top:40px; border-top:2px solid #eee; padding-top:20px; color:var(--qb-red);">Master Log & Usage Duration</h3>
+                    <input type="text" id="searchHist" class="search-box" placeholder="Search records..." onkeyup="renderUI()">
                     <table>
-                        <thead><tr><th>Date</th><th>Employee</th><th>Asset Info</th><th>Serial</th><th>Returned On</th><th>Admin</th></tr></thead>
+                        <thead><tr><th>Issued</th><th>Employee</th><th>Asset</th><th>Returned</th><th>Usage</th><th>Admin</th></tr></thead>
                         <tbody id="historyBody"></tbody>
                     </table>
                 </div>
@@ -106,7 +107,6 @@
     </div>
 
 <script>
-    // Cloud Config
     const API_KEY = "$2a$10$zs0AXFgLuXZDitAlBISdl.N.tuEhmZpkUhIXK6hOM/K89PbZgVRES";
     const BIN_ID = "69946ddd43b1c97be985ee40";
     const URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
@@ -157,67 +157,73 @@
         const i = document.getElementById('pickAsset').value, n = document.getElementById('empName').value, c = document.getElementById('empCnic').value, d = document.getElementById('empDept').value, p = document.getElementById('empPhone').value;
         if(i!=="" && n && c) {
             const item = stock[i]; item.status = 'Issued';
-            logs.unshift({ make: item.make, model: item.model, sn: item.serial, name: n, cnic: c, dept: d, ph: p, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned', rDate: '-' });
+            logs.unshift({ make: item.make, model: item.model, sn: item.serial, name: n, cnic: c, dept: d, ph: p, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned', rDate: '-', usage: '-' });
             pushData();
-            document.getElementById('empName').value=''; document.getElementById('empCnic').value='';
         }
     }
 
-    // FIXED RETURN LOGIC
+    // UPDATED RETURN LOGIC WITH DURATION CALCULATION
     function handleReturn(idx) {
         const log = logs[idx];
         const itemIndex = stock.findIndex(s => s.serial === log.sn);
         
         if (itemIndex !== -1) {
-            stock[itemIndex].status = 'Available'; // Wapas Warehouse mein bhej diya
+            stock[itemIndex].status = 'Available';
             log.status = 'Returned';
-            log.rDate = new Date().toLocaleDateString('en-GB');
-            alert("Success: " + log.sn + " is now Available in Warehouse.");
+            const rDateStr = new Date().toLocaleDateString('en-GB');
+            log.rDate = rDateStr;
+
+            // Calculate Usage Days
+            const d1 = parseDate(log.date);
+            const d2 = new Date();
+            const diffTime = Math.abs(d2 - d1);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            log.usage = diffDays + " Days";
+
             pushData();
-        } else {
-            alert("Error: Original serial not found in stock list!");
         }
     }
 
-    function deleteStock(idx) { if(confirm("Delete this item from Warehouse?")) { stock.splice(idx,1); pushData(); } }
-    function deleteLog(idx) { if(confirm("Delete this history record permanently?")) { logs.splice(idx,1); pushData(); } }
+    function parseDate(str) {
+        const parts = str.split('/');
+        return new Date(parts[2], parts[1] - 1, parts[0]);
+    }
+
+    function deleteStock(idx) { if(confirm("Delete item?")) { stock.splice(idx,1); pushData(); } }
+    function deleteLog(idx) { if(confirm("Delete history?")) { logs.splice(idx,1); pushData(); } }
 
     function renderUI() {
         const qA = document.getElementById('searchActive').value.toLowerCase();
         const qS = document.getElementById('searchStore').value.toLowerCase();
         const qH = document.getElementById('searchHist').value.toLowerCase();
 
-        // Dropdown
         const sel = document.getElementById('pickAsset');
         sel.innerHTML = '<option value="">-- Select Asset From Warehouse --</option>';
         stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.make} ${s.model} (${s.serial})</option>`; });
 
-        // Warehouse Table
         const sB = document.getElementById('storeBody'); sB.innerHTML = '';
         stock.forEach((s, i) => { 
             if(s.status === 'Available' && (s.make.toLowerCase().includes(qS) || s.serial.toLowerCase().includes(qS))) {
-                sB.innerHTML += `<tr><td>${s.make}</td><td>${s.model}</td><td>${s.serial}</td><td><b style="color:green">In Store</b></td><td><button class="btn-del" onclick="deleteStock(${i})">DELETE</button></td></tr>`; 
+                sB.innerHTML += `<tr><td>${s.make}</td><td>${s.model}</td><td>${s.serial}</td><td><button class="btn-del" onclick="deleteStock(${i})">DEL</button></td></tr>`; 
             }
         });
 
-        // Active Table
         const aB = document.getElementById('activeBody'); aB.innerHTML = '';
         logs.forEach((l, i) => {
             if(l.status === 'Assigned' && (l.name.toLowerCase().includes(qA) || l.sn.toLowerCase().includes(qA))) {
-                aB.innerHTML += `<tr><td><b>${l.make} ${l.model}</b><br><small>${l.sn}</small></td><td>${l.name}<br><small>${l.cnic}</small></td><td>${l.dept}</td><td>${l.date}</td><td><button onclick="sendWA(${i})" style="background:#22c55e;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer;">WA</button> <button onclick="handleReturn(${i})" style="background:#facc15;border:none;padding:5px 8px;border-radius:4px;cursor:pointer;">RETURN</button></td></tr>`;
+                aB.innerHTML += `<tr><td><b>${l.make}</b><br><small>${l.sn}</small></td><td>${l.name}<br><small>${l.cnic}</small></td><td>${l.dept}</td><td>${l.date}</td><td><button onclick="sendWA(${i})" style="background:#22c55e;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer;">WA</button> <button onclick="handleReturn(${i})" style="background:#facc15;border:none;padding:5px 8px;border-radius:4px;cursor:pointer;">RET</button></td></tr>`;
             }
         });
 
-        // History Table
         const hB = document.getElementById('historyBody'); hB.innerHTML = '';
         logs.forEach((l, i) => {
-            if(l.name.toLowerCase().includes(qH) || l.sn.toLowerCase().includes(qH) || l.cnic.includes(qH)) {
-                hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.make} ${l.model}</td><td>${l.sn}</td><td style="color:green;font-weight:bold;">${l.rDate}</td><td><button class="btn-del" onclick="deleteLog(${i})">DEL</button></td></tr>`;
+            if(l.name.toLowerCase().includes(qH) || l.sn.toLowerCase().includes(qH)) {
+                hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.make}<br><small>${l.sn}</small></td><td>${l.rDate}</td><td><span class="badge-days">${l.usage}</span></td><td><button class="btn-del" onclick="deleteLog(${i})">DEL</button></td></tr>`;
             }
         });
 
         const cin = stock.filter(x => x.status==='Available').length, cout = stock.filter(x => x.status==='Issued').length;
-        document.getElementById('statsBox').innerHTML = `Warehouse Store: <b>${cin}</b><br>Out with Staff: <b>${cout}</b><br>Total Inventory: <b>${stock.length}</b>`;
+        document.getElementById('statsBox').innerHTML = `Warehouse Store: <b>${cin}</b><br>Out with Staff: <b><b>${cout}</b><br>Total Inventory: <b>${stock.length}</b>`;
         if(myChart) myChart.destroy();
         myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { labels: ['Warehouse','Staff'], datasets:[{data:[cin,cout],backgroundColor:['#10b981','#ef4444'],borderWidth:0}]}, options:{cutout:'80%',plugins:{legend:{display:false}}}});
     }
@@ -229,8 +235,8 @@
         window.location.href = `whatsapp://send?phone=${cleanP}&text=Salam *${l.name}*! Asset *${l.make} ${l.model}* (Serial: *${l.sn}*) is issued to you. Branch: *${l.dept}*.`;
     }
 
-    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Master_Log"), "QB_ERP_Report.xlsx"); }
-    setInterval(pullData, 30000); // Auto-Sync every 30s
+    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Full_Inventory_Report"), "QB_ERP_V29.xlsx"); }
+    setInterval(pullData, 30000);
 </script>
 </body>
 </html>
