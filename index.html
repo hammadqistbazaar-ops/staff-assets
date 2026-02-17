@@ -102,7 +102,8 @@
     async function loadFromCloud() {
         const label = document.getElementById('syncLabel');
         try {
-            const res = await fetch(DATABASE_URL);
+            const res = await fetch(DATABASE_URL + "?nocache=" + Date.now());
+            if(!res.ok) throw new Error();
             const data = await res.json();
             stock = data.stock || []; logs = data.logs || [];
             label.innerText = "Live Sync Active"; label.style.color = "green";
@@ -122,7 +123,7 @@
         try {
             await fetch(DATABASE_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({stock, logs}) });
             document.getElementById('syncLabel').innerText = "Live Sync Active";
-        } catch(e) { console.log("Sync Background"); }
+        } catch(e) { document.getElementById('syncLabel').innerText = "Offline Mode"; }
     }
 
     function nav(p) {
@@ -184,7 +185,7 @@
 
     function genPDF(idx) {
         const l = logs[idx]; const { jsPDF } = window.jspdf; const doc = new jsPDF();
-        doc.text(`Asset Handover: ${l.name}`, 10, 10); doc.text(`Asset: ${l.asset}`, 10, 20); doc.save(`QB_${l.name}.pdf`);
+        doc.text(`Asset Handover: ${l.name}`, 10, 10); doc.text(`Asset: ${l.asset} (${l.sn})`, 10, 20); doc.save(`QB_${l.name}.pdf`);
     }
 
     function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Logs"), "QB_Report.xlsx"); }
