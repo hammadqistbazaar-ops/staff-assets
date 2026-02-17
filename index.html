@@ -28,7 +28,7 @@
         .btn-pdf { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; margin-left: 2px; }
         .btn-ret { background: #facc15; color: #0f172a; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; margin-left: 2px; }
         .usage-tag { background: #fee2e2; color: #e11d48; padding: 3px 8px; border-radius: 5px; font-weight: bold; font-size: 11px; }
-        #syncStatus { font-size: 12px; font-weight: bold; margin-right: 10px; }
+        #syncLabel { font-size: 12px; font-weight: bold; margin-right: 15px; }
     </style>
 </head>
 <body onload="initSecurity()">
@@ -36,16 +36,16 @@
     <div id="lockScreen">
         <div class="login-card">
             <div class="logo" style="margin-bottom:15px">Qist<span>Bazaar</span></div>
-            <input type="password" id="pinInput" maxlength="4" placeholder="PIN" style="text-align:center; font-size:24px;" onkeyup="checkAccess(this.value)">
+            <input type="password" id="pinInput" maxlength="4" placeholder="PIN" style="text-align:center; font-size:24px; border:2px solid var(--qb-blue);" onkeyup="checkAccess(this.value)">
         </div>
     </div>
 
     <div id="app" style="display:none">
         <div class="navbar">
             <div class="logo">Qist<span>Bazaar</span> <span>AssetPro</span></div>
-            <div>
-                <span id="syncStatus" style="color:red">Connecting...</span>
-                <button onclick="exportXLS()" style="background:#10b981; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">Export Excel</button>
+            <div style="display: flex; align-items: center;">
+                <span id="syncLabel" style="color:red">Connecting...</span>
+                <button onclick="exportXLS()" style="background:#10b981; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">Export Excel</button>
                 <button onclick="factoryReset()" style="background:#64748b; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; margin-left:5px;">Clear All</button>
             </div>
         </div>
@@ -76,14 +76,14 @@
                     <div style="display:grid; grid-template-columns: 1fr 1fr 120px; gap:10px;">
                         <input type="text" id="addName" placeholder="Device Name">
                         <input type="text" id="addSerial" placeholder="Serial/IMEI">
-                        <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; border-radius:8px; cursor:pointer;">+ Add Stock</button>
+                        <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">+ Add Stock</button>
                     </div>
                     <table>
                         <thead><tr><th>Item Name</th><th>Serial Number</th><th>Status</th><th>Remove</th></tr></thead>
                         <tbody id="storeBody"></tbody>
                     </table>
                     <h3 style="color:var(--qb-red); margin-top:40px;">Master Movement History</h3>
-                    <input type="text" id="searchHist" placeholder="Search..." onkeyup="renderUI()">
+                    <input type="text" id="searchHist" placeholder="Search by name, serial or date..." onkeyup="renderUI()">
                     <table>
                         <thead><tr><th>Issue Date</th><th>Usage</th><th>Asset Detail</th><th>Employee</th><th>Return Date</th></tr></thead>
                         <tbody id="historyBody"></tbody>
@@ -92,30 +92,41 @@
             </div>
 
             <div class="card" style="text-align:center;">
-                <h3>Inventory Status</h3>
+                <h3 style="color:var(--qb-blue)">Inventory Status</h3>
                 <canvas id="chart"></canvas>
-                <div id="statsBox" style="text-align:left; margin-top:20px;"></div>
+                <div id="statsBox" style="text-align:left; margin-top:25px; line-height:2.5; font-size:16px;"></div>
             </div>
         </div>
     </div>
 
 <script>
+    // --- UPDATED SYNC URL ---
     const DATABASE_URL = "https://script.google.com/macros/s/AKfycbzjHUE3Ygzlnc3ZSlzpvIHtvUTzd7zaGRmBBcsqVlXi8EK_W2dD3ZLIaAJq69aB-BqfKA/exec";
-    let stock = [], logs = [], myChart;
+
+    let stock = [];
+    let logs = [];
+    let myChart;
 
     function initSecurity() { if(!localStorage.getItem('QB_SEC')) localStorage.setItem('QB_SEC', '0000'); }
     function checkAccess(val) { if(val === localStorage.getItem('QB_SEC')) { document.getElementById('lockScreen').style.display='none'; document.getElementById('app').style.display='block'; loadFromCloud(); } }
 
     async function loadFromCloud() {
+        const label = document.getElementById('syncLabel');
+        label.innerText = "Syncing...";
         try {
-            const res = await fetch(DATABASE_URL);
-            const data = await res.json();
-            stock = data.stock || []; logs = data.logs || [];
+            // Added redirect handling to bypass Offline Mode error
+            const response = await fetch(DATABASE_URL);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const data = await response.json();
+            stock = data.stock || [];
+            logs = data.logs || [];
+            label.innerText = "Live Sync Active";
+            label.style.color = "green";
             renderUI();
-            document.getElementById('syncStatus').innerText = "Live Sync Active";
-            document.getElementById('syncStatus').style.color = "green";
         } catch(e) { 
-            document.getElementById('syncStatus').innerText = "Offline Mode";
+            console.error("Sync failed, using local storage", e);
+            label.innerText = "Offline Mode";
+            label.style.color = "red";
             stock = JSON.parse(localStorage.getItem('QB_STK_V19')) || [];
             logs = JSON.parse(localStorage.getItem('QB_LOG_V19')) || [];
             renderUI();
@@ -126,7 +137,17 @@
         localStorage.setItem('QB_STK_V19', JSON.stringify(stock));
         localStorage.setItem('QB_LOG_V19', JSON.stringify(logs));
         renderUI();
-        await fetch(DATABASE_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({stock, logs}) });
+        try {
+            await fetch(DATABASE_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Essential for Google Apps Script
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({stock, logs})
+            });
+            document.getElementById('syncLabel').innerText = "Live Sync Active";
+        } catch(e) { 
+            document.getElementById('syncLabel').innerText = "Sync Error";
+        }
     }
 
     function nav(p) {
@@ -139,6 +160,7 @@
     function handleAdd() {
         const n = document.getElementById('addName').value, s = document.getElementById('addSerial').value;
         if(n && s) { stock.push({ name: n, serial: s, status: 'Available' }); syncToCloud(); }
+        document.getElementById('addName').value=''; document.getElementById('addSerial').value='';
     }
 
     function handleIssue() {
@@ -150,10 +172,17 @@
         }
     }
 
+    function handleReturn(idx) {
+        const log = logs[idx]; const item = stock.find(s => s.serial === log.sn);
+        if(item) item.status = 'Available';
+        log.status = 'Returned'; log.rDate = new Date().toLocaleDateString('en-GB');
+        syncToCloud();
+    }
+
     function renderUI() {
         const q = document.getElementById('searchHist').value.toLowerCase();
         const sel = document.getElementById('pickAsset');
-        sel.innerHTML = '<option value="">-- Select Available Item --</option>';
+        sel.innerHTML = '<option value="">-- Select Available Item From Warehouse --</option>';
         stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.name} (SN: ${s.serial})</option>`; });
 
         const sB = document.getElementById('storeBody'); sB.innerHTML = '';
@@ -163,7 +192,7 @@
         logs.forEach((l, i) => { if(l.status === 'Assigned') aB.innerHTML += `<tr><td><b>${l.asset}</b><br><small>${l.sn}</small></td><td>${l.name}</td><td>${l.date}</td><td><button class="btn-wa" onclick="sendWA(${i})">WA</button><button class="btn-pdf" onclick="genPDF(${i})">PDF</button><button class="btn-ret" onclick="handleReturn(${i})">RET</button></td></tr>`; });
 
         const hB = document.getElementById('historyBody'); hB.innerHTML = '';
-        logs.forEach(l => { if(l.name.toLowerCase().includes(q)) hB.innerHTML += `<tr><td>${l.date}</td><td><span class="usage-tag">Days</span></td><td><b>${l.asset}</b><br><small>${l.sn}</small></td><td>${l.name}</td><td>${l.rDate}</td></tr>`; });
+        logs.forEach(l => { if(l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q)) hB.innerHTML += `<tr><td>${l.date}</td><td><span class="usage-tag">Days</span></td><td><b>${l.asset}</b><br><small>${l.sn}</small></td><td>${l.name}</td><td style="color:green;font-weight:bold">${l.rDate}</td></tr>`; });
 
         const cin = stock.filter(x => x.status==='Available').length, cout = stock.filter(x => x.status==='Issued').length;
         document.getElementById('statsBox').innerHTML = `Warehouse Store: <b>${cin}</b><br>Active with Staff: <b>${cout}</b><hr>Grand Total: <b>${stock.length}</b>`;
@@ -171,25 +200,12 @@
         myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { labels: ['In','Out'], datasets:[{data:[cin,cout],backgroundColor:['#10b981','#ef4444'],borderWidth:0}]}, options:{cutout:'80%',plugins:{legend:{display:false}}}});
     }
 
-    function handleReturn(idx) {
-        const log = logs[idx]; const item = stock.find(s => s.serial === log.sn);
-        if(item) item.status = 'Available';
-        log.status = 'Returned'; log.rDate = new Date().toLocaleDateString('en-GB');
-        syncToCloud();
-    }
-
-    function sendWA(idx) {
-        const l = logs[idx];
-        window.open(`https://wa.me/${l.ph}?text=Asset:${l.asset}%0ASerial:${l.sn}`, '_blank');
-    }
-
-    function genPDF(idx) {
-        const l = logs[idx]; const { jsPDF } = window.jspdf; const doc = new jsPDF();
-        doc.text(`Handover: ${l.name}`, 10, 10); doc.text(`Asset: ${l.asset}`, 10, 20); doc.save(`${l.name}.pdf`);
-    }
-
-    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Logs"), "Report.xlsx"); }
-    function factoryReset() { if(confirm("Clear All?")) { stock=[]; logs=[]; syncToCloud(); } }
+    function sendWA(idx) { const l = logs[idx]; window.open(`https://wa.me/${l.ph}?text=Asset: ${l.asset}%0ASerial: ${l.sn}`, '_blank'); }
+    function genPDF(idx) { const l = logs[idx]; const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.text(`Handover Certificate - ${l.name}`, 10, 10); doc.text(`Asset: ${l.asset}`, 10, 20); doc.save(`${l.name}.pdf`); }
+    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Logs"), "QB_Report.xlsx"); }
+    function factoryReset() { if(confirm("Clear All Cloud Data?")) { stock=[]; logs=[]; syncToCloud(); } }
+    
+    // Auto Refresh
     setInterval(loadFromCloud, 30000);
 </script>
 </body>
