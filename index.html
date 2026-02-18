@@ -23,6 +23,7 @@
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th { background: #f8fafc; text-align: left; padding: 12px; font-size: 11px; color: var(--qb-blue); border-bottom: 2px solid #edf2f7; text-transform: uppercase; }
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        .wa-btn { color: #25d366; text-decoration: none; font-size: 18px; margin-left: 5px; cursor: pointer; }
         .del-btn { color: var(--qb-red); border: 1px solid var(--qb-red); background: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; }
         .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
         .available { background: #dcfce7; color: #166534; }
@@ -63,6 +64,8 @@
                         <select id="pickAsset" style="border: 2px solid var(--qb-blue); font-weight:bold;"></select>
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                             <input type="text" id="empName" placeholder="Employee Name">
+                            <input type="text" id="empDept" placeholder="Department">
+                            <input type="text" id="empCNIC" placeholder="CNIC Number">
                             <input type="text" id="empPh" placeholder="923xxxxxxxxx (WhatsApp)">
                         </div>
                         <button onclick="handleIssue()" style="background:var(--qb-red); color:white; border:none; padding:14px; border-radius:8px; width:100%; cursor:pointer; font-weight:700;">Assign Asset ✅</button>
@@ -77,20 +80,21 @@
                 <div id="viewWarehouse" style="display:none">
                     <div id="warehouseForm" style="display:none">
                         <h3>Add New Stock</h3>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                            <input type="text" id="addMake" placeholder="Item Name">
-                            <input type="text" id="addSn" placeholder="Serial / IMEI">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                            <input type="text" id="addMake" placeholder="Make (e.g. Infinix)">
+                            <input type="text" id="addModel" placeholder="Model (e.g. Note 30)">
+                            <input type="text" id="addSn" placeholder="IMEI / Serial">
                         </div>
-                        <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:100%; cursor:pointer; font-weight:700;">+ Add Stock</button>
+                        <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:100%; cursor:pointer; font-weight:700;">+ Secure Add Stock</button>
                     </div>
                     <h3 style="margin-top:30px;">Inventory Overview</h3>
                     <table>
-                        <thead><tr><th>Item</th><th>Serial</th><th>Status</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Make</th><th>Model</th><th>Serial</th><th>Status</th><th>Action</th></tr></thead>
                         <tbody id="storeBody"></tbody>
                     </table>
                     <h3 style="margin-top:40px; color:var(--qb-red); border-top:2px solid #f1f5f9; padding-top:20px;">Master History</h3>
                     <table>
-                        <thead><tr><th>Date</th><th>Staff</th><th>Asset</th><th>Admin</th><th>Usage</th></tr></thead>
+                        <thead><tr><th>Date</th><th>Employee</th><th>Asset Info</th><th>CNIC</th><th>Admin</th><th>Details</th></tr></thead>
                         <tbody id="historyBody"></tbody>
                     </table>
                 </div>
@@ -104,7 +108,7 @@
                     </div>
                     <button onclick="addNewUser()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:100%; cursor:pointer;">Create Account</button>
                     <table style="margin-top:20px;">
-                        <thead><tr><th>USER</th><th>ROLE</th><th>ACTION</th></tr></thead>
+                        <thead><tr><th>User</th><th>Role</th><th>Action</th></tr></thead>
                         <tbody id="userListBody"></tbody>
                     </table>
                 </div>
@@ -141,15 +145,21 @@
             currentUser = userDB[id];
             document.getElementById('lockScreen').style.display = 'none';
             document.getElementById('app').style.display = 'block';
-            document.getElementById('userNameDisplay').innerText = `User: ${currentUser.name} (${currentUser.role})`;
+            document.getElementById('userNameDisplay').innerText = `User: ${currentUser.name}`;
             renderUI();
-        } else { alert("Invalid Credentials"); }
+        } else { alert("Invalid PIN!"); }
     }
 
     async function pushData() {
         if(currentUser.role === 'viewer') return;
         await fetch(URL, { method: 'PUT', headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY }, body: JSON.stringify({ stock, logs, userDB }) });
         renderUI();
+    }
+
+    // Direct WhatsApp Logic
+    function triggerWA(ph, msg) {
+        if(!ph) return;
+        window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
     function addNewUser() {
@@ -165,19 +175,14 @@
         } else { alert("Fill all fields!"); }
     }
 
-    function triggerWA(ph, msg) {
-        if(!ph) return;
-        window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`, '_blank');
-    }
-
     function handleIssue() {
         const i = document.getElementById('pickAsset').value;
         const n = document.getElementById('empName').value;
         const ph = document.getElementById('empPh').value;
         if(i!=="" && n) {
             stock[i].status = 'Issued';
-            logs.unshift({ sn: stock[i].serial, make: stock[i].make, name: n, ph: ph, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned', by: currentUser.name });
-            triggerWA(ph, `Salaam ${n}, QistBazaar ERP: ${stock[i].make} (SN: ${stock[i].serial}) assigned to you.`);
+            logs.unshift({ sn: stock[i].serial, make: stock[i].make, model: stock[i].model, name: n, dept: document.getElementById('empDept').value, cnic: document.getElementById('empCNIC').value, ph: ph, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned', by: currentUser.name });
+            triggerWA(ph, `Salaam ${n}, QistBazaar ERP: ${stock[i].make} ${stock[i].model} (SN: ${stock[i].serial}) assigned to you.`);
             pushData();
         }
     }
@@ -193,8 +198,8 @@
 
     function handleAdd() {
         const make = document.getElementById('addMake').value.trim(), sn = document.getElementById('addSn').value.trim();
-        if(stock.some(s => s.serial === sn)) return alert("🚫 Duplicate Serial!");
-        if(make && sn) { stock.push({ make: make, serial: sn, status: 'Available' }); pushData(); }
+        if(stock.some(s => s.serial === sn)) return alert("🚫 Duplicate Serial Blocked!");
+        if(make && sn) { stock.push({ make: make, model: document.getElementById('addModel').value.trim(), serial: sn, status: 'Available' }); pushData(); }
     }
 
     function renderUI() {
@@ -206,16 +211,16 @@
         document.getElementById('warehouseForm').style.display = isAdmin ? 'block' : 'none';
 
         const sel = document.getElementById('pickAsset'); sel.innerHTML = '<option value="">-- Choose Item --</option>';
-        stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.make} (${s.serial})</option>`; });
+        stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.make} ${s.model} (${s.serial})</option>`; });
 
         const aB = document.getElementById('activeBody'); aB.innerHTML = '';
         logs.forEach((l, i) => { if(l.status === 'Assigned' && (l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q))) {
-            aB.innerHTML += `<tr><td>${l.make}<br><small>${l.sn}</small></td><td>${l.name}</td><td>${l.date}</td><td>${isAdmin ? `<button onclick="handleReturn(${i})" style="background:#facc15;border:none;padding:5px;cursor:pointer">RET</button>` : '🔒'}</td></tr>`;
+            aB.innerHTML += `<tr><td>${l.make} ${l.model}<br><small>${l.sn}</small></td><td>${l.name}</td><td>${l.date}</td><td>${isAdmin ? `<button onclick="handleReturn(${i})" style="background:#facc15;border:none;padding:5px;cursor:pointer">RET</button>` : '🔒'}</td></tr>`;
         }});
 
         const sB = document.getElementById('storeBody'); sB.innerHTML = '';
-        stock.forEach((s, i) => { if(s.serial.toLowerCase().includes(q) || s.make.toLowerCase().includes(q)) {
-            sB.innerHTML += `<tr><td>${s.make}</td><td>${s.serial}</td><td><span class="status-badge ${s.status === 'Available' ? 'available' : 'issued'}">${s.status}</span></td><td>${isSuper ? `<button class="del-btn" onclick="stock.splice(${i},1);pushData()">🗑️</button>` : ''}</td></tr>`;
+        stock.forEach((s, i) => { if(s.serial.toLowerCase().includes(q)) {
+            sB.innerHTML += `<tr><td>${s.make}</td><td>${s.model}</td><td>${s.serial}</td><td><span class="status-badge ${s.status === 'Available' ? 'available' : 'issued'}">${s.status}</span></td><td>${isSuper ? `<button class="del-btn" onclick="stock.splice(${i},1);pushData()">🗑️</button>` : ''}</td></tr>`;
         }});
 
         const uB = document.getElementById('userListBody'); uB.innerHTML = '';
@@ -225,7 +230,7 @@
 
         const hB = document.getElementById('historyBody'); hB.innerHTML = '';
         logs.forEach((l, i) => { if(l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q)) {
-            hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.make}<br><small>${l.sn}</small></td><td>${l.by}</td><td><span style="background:#fee2e2;padding:2px 6px;border-radius:4px;font-size:10px">1 Days</span></td></tr>`;
+            hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.make}<br><small>${l.sn}</small></td><td>${l.cnic || '-'}</td><td>${l.by}</td><td>${l.status} ${isSuper ? `<button class="del-btn" onclick="logs.splice(${i},1);pushData()">🗑️</button>` : ''}</td></tr>`;
         }});
 
         const cin = stock.filter(x => x.status==='Available').length, cout = stock.filter(x => x.status==='Issued').length;
@@ -238,10 +243,6 @@
         document.getElementById('viewIssue').style.display = p==='issue'?'block':'none';
         document.getElementById('viewWarehouse').style.display = p==='warehouse'?'block':'none';
         document.getElementById('viewAdmin').style.display = p==='admin'?'block':'none';
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        if(p==='issue') document.getElementById('t1').classList.add('active');
-        if(p==='warehouse') document.getElementById('t2').classList.add('active');
-        if(p==='admin') document.getElementById('tAdmin').classList.add('active');
     }
     function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Log"), "QB_Report.xlsx"); }
 </script>
