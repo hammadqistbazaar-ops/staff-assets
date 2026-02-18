@@ -2,142 +2,97 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>QistBazaar ERP V32.7 - Professional</title>
+    <title>QistBazaar ERP V30.0 - Easy Delete</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --qb-blue: #1e40af; --qb-red: #e11d48; --bg: #f3f4f6; }
-        body { background: var(--bg); font-family: 'Inter', sans-serif; margin: 0; color: #1e293b; }
-        
-        /* Login Overlay */
+        body { background: var(--bg); font-family: 'Segoe UI', sans-serif; margin: 0; }
         #lockScreen { position: fixed; inset: 0; background: var(--qb-blue); display: flex; justify-content: center; align-items: center; z-index: 10000; }
-        .login-card { background: white; padding: 40px; border-radius: 20px; text-align: center; width: 320px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); }
-        
-        /* Navbar & Tabs */
+        .login-card { background: white; padding: 40px; border-radius: 20px; text-align: center; width: 320px; }
         .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: white; border-bottom: 2px solid #e2e8f0; }
-        .logo { font-size: 24px; font-weight: 800; color: var(--qb-blue); }
+        .logo { font-size: 24px; font-weight: bold; color: var(--qb-blue); }
         .logo span { color: var(--qb-red); }
-        .tabs { display: flex; padding: 20px 30px 0; gap: 8px; }
-        .tab-btn { padding: 12px 25px; border: none; border-radius: 10px 10px 0 0; cursor: pointer; font-weight: 600; background: #e2e8f0; color: #64748b; transition: 0.3s; }
+        .tabs { display: flex; padding: 20px 30px 0; gap: 10px; }
+        .tab-btn { padding: 12px 25px; border: none; border-radius: 10px 10px 0 0; cursor: pointer; font-weight: bold; background: #e2e8f0; }
         .tab-btn.active { background: white; color: var(--qb-blue); border-bottom: 3px solid var(--qb-red); }
-        
-        /* Main Layout */
         .main-grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; padding: 0 30px 30px; }
-        .card { background: white; padding: 25px; border-radius: 0 15px 15px 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        
-        /* Forms & Inputs */
-        input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 12px; font-size: 14px; }
-        input:focus { border-color: var(--qb-blue); outline: none; box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1); }
-        
-        .search-bar { background: #eff6ff; border: 2px solid var(--qb-blue) !important; font-weight: 600; }
-        
+        .card { background: white; padding: 25px; border-radius: 0 15px 15px 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { background: #f8fafc; text-align: left; padding: 12px; font-size: 11px; color: var(--qb-blue); border-bottom: 2px solid #edf2f7; text-transform: uppercase; letter-spacing: 0.5px; }
+        th { background: #f8fafc; text-align: left; padding: 12px; font-size: 11px; color: var(--qb-blue); border-bottom: 2px solid #edf2f7; text-transform: uppercase; }
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-
-        .btn-primary { background: var(--qb-blue); color: white; border: none; padding: 14px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: 700; font-size: 14px; }
-        .usage-tag { background: #fee2e2; color: #e11d48; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 11px; }
-        .super-admin-only { display: none; }
+        /* BIG DELETE BUTTON */
+        .del-btn { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; }
+        .del-btn:hover { background: #dc2626; color: white; }
+        .search-box { background: #fff; border: 2px solid var(--qb-blue); margin-bottom: 15px; padding-left: 35px; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="blue" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>'); background-repeat: no-repeat; background-position: 10px center; }
     </style>
 </head>
-<body>
+<body onload="initSecurity()">
 
     <div id="lockScreen">
         <div class="login-card">
-            <div class="logo" style="margin-bottom:10px">Qist<span>Bazaar</span></div>
-            <p style="color:#64748b; font-size:14px; margin-bottom:20px;">Inventory Management System</p>
-            <input type="text" id="userInput" placeholder="Username">
-            <input type="password" id="pinInput" placeholder="PIN">
-            <button class="btn-primary" onclick="checkLogin()">Sign In</button>
+            <div class="logo">Qist<span>Bazaar</span></div>
+            <p>Security PIN Required</p>
+            <input type="password" id="pinInput" maxlength="4" style="text-align:center; font-size:30px;" onkeyup="checkAccess(this.value)">
         </div>
     </div>
 
     <div id="app" style="display:none">
         <div class="navbar">
-            <div class="logo">Qist<span>Bazaar</span> <span>PRO</span></div>
-            <div style="display:flex; align-items:center; gap:15px">
-                <span id="userNameDisplay" style="font-weight:600; font-size:14px; color:#64748b"></span>
-                <button onclick="location.reload()" style="background:#f1f5f9; border:1px solid #cbd5e1; padding:8px 15px; border-radius:8px; cursor:pointer;">Logout</button>
+            <div class="logo">Qist<span>Bazaar</span> <span>V30.0</span></div>
+            <div>
+                <span id="syncLabel">Connecting...</span>
+                <button onclick="exportXLS()" style="background:#10b981; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">Export Excel</button>
             </div>
         </div>
 
         <div class="tabs">
-            <button id="t1" class="tab-btn active" onclick="nav('issue')">Issuance</button>
-            <button id="t2" class="tab-btn" onclick="nav('warehouse')">Warehouse</button>
-            <button id="tAdmin" class="tab-btn super-admin-only" onclick="nav('admin')">User Management ⚙️</button>
+            <button id="tab1" class="tab-btn active" onclick="nav('issue')">Issue Asset</button>
+            <button id="tab2" class="tab-btn" onclick="nav('warehouse')">Warehouse & Logs</button>
         </div>
 
         <div class="main-grid">
             <div class="card">
-                <input type="text" id="searchBar" class="search-bar" placeholder="🔍 Search by Name, Serial, or Department..." onkeyup="renderUI()">
-
                 <div id="viewIssue">
-                    <h3>Register New Handover</h3>
-                    <select id="pickAsset" style="border: 2px solid var(--qb-blue); font-weight:bold;"></select>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <h3>Register Asset Issuance</h3>
+                    <select id="pickAsset" style="border: 2px solid var(--qb-blue); height: 50px; font-weight:bold;"></select>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
                         <input type="text" id="empName" placeholder="Employee Name">
-                        <input type="text" id="empDept" placeholder="Department/Branch">
-                        <input type="text" id="empCnic" placeholder="CNIC Number">
-                        <input type="text" id="empPh" placeholder="923xxxxxxxxx">
+                        <input type="text" id="empCnic" placeholder="CNIC">
+                        <input type="text" id="empDept" placeholder="Branch">
+                        <input type="text" id="empPhone" placeholder="WhatsApp">
                     </div>
-                    <button class="btn-primary" style="background:var(--qb-red)" onclick="handleIssue()">Confirm & Assign Asset ✅</button>
+                    <button onclick="handleIssue()" style="background:var(--qb-red); color:white; border:none; padding:15px; border-radius:8px; width:100%; cursor:pointer; font-weight:bold;">Confirm Issuance ✅</button>
 
-                    <h3 style="margin-top:30px; color:var(--qb-blue)">Active Staff Assets</h3>
+                    <h3 style="margin-top:35px;">Active Staff Assets</h3>
+                    <input type="text" id="searchActive" class="search-box" placeholder="Search active..." onkeyup="renderUI()">
                     <table>
-                        <thead><tr><th>Asset Detail</th><th>Employee</th><th>Department</th><th>Date</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Asset</th><th>Staff</th><th>Date</th><th>Action</th></tr></thead>
                         <tbody id="activeBody"></tbody>
                     </table>
                 </div>
 
                 <div id="viewWarehouse" style="display:none">
-                    <h3>Inventory In-Take</h3>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-                        <input type="text" id="addMk" placeholder="Make (e.g. HP)">
-                        <input type="text" id="addMo" placeholder="Model (e.g. Elitebook)">
-                        <input type="text" id="addSn" placeholder="Serial/IMEI">
-                    </div>
-                    <button class="btn-primary" onclick="handleAdd()">+ Add to Warehouse</button>
-
-                    <h3 style="margin-top:30px; color:var(--qb-blue)">Available Stock</h3>
+                    <h3>Available Stock (Warehouse)</h3>
+                    <input type="text" id="searchStore" class="search-box" placeholder="Search warehouse..." onkeyup="renderUI()">
                     <table>
-                        <thead><tr><th>Make</th><th>Model</th><th>Serial</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Make</th><th>Model</th><th>Serial</th><th>Admin</th></tr></thead>
                         <tbody id="storeBody"></tbody>
                     </table>
 
-                    <h3 style="margin-top:40px; color:var(--qb-red); border-top:2px solid #f1f5f9; padding-top:20px;">Stock History</h3>
+                    <h3 style="margin-top:40px; border-top:2px solid #eee; padding-top:20px; color:var(--qb-red);">Master Stock History</h3>
+                    <input type="text" id="searchHist" class="search-box" placeholder="Search history..." onkeyup="renderUI()">
                     <table>
-                        <thead><tr><th>Date</th><th>Employee</th><th>Asset</th><th>By Admin</th><th>Usage</th></tr></thead>
+                        <thead><tr><th>Date</th><th>Employee</th><th>Asset</th><th>Usage</th><th>Admin</th></tr></thead>
                         <tbody id="historyBody"></tbody>
-                    </table>
-                </div>
-
-                <div id="viewAdmin" style="display:none">
-                    <h3>Create New User Account</h3>
-                    <p style="font-size:12px; color:var(--qb-red)">* Only you (Hammad) can see this section.</p>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-                        <input type="text" id="newUserId" placeholder="Username (no dots/spaces)">
-                        <input type="text" id="newUserPin" placeholder="4-Digit PIN">
-                        <select id="newUserRole">
-                            <option value="admin">Admin (Laraib Style)</option>
-                            <option value="viewer">Viewer (Read Only)</option>
-                        </select>
-                    </div>
-                    <button class="btn-primary" onclick="addNewUser()">Create Account</button>
-                    
-                    <h3 style="margin-top:30px;">System Users List</h3>
-                    <table>
-                        <thead><tr><th>Username</th><th>Role</th><th>PIN</th><th>Action</th></tr></thead>
-                        <tbody id="userListBody"></tbody>
                     </table>
                 </div>
             </div>
 
-            <div class="card" style="text-align:center">
-                <h3 style="color:var(--qb-blue)">Inventory Status</h3>
+            <div class="card" style="text-align:center;">
                 <canvas id="chart"></canvas>
-                <div id="statsBox" style="text-align:left; margin-top:20px; line-height:2"></div>
-                <button onclick="exportXLS()" style="margin-top:20px; width:100%; padding:12px; border:1px solid #10b981; color:#10b981; background:none; border-radius:10px; font-weight:700;">Export Excel Report</button>
+                <div id="statsBox" style="text-align:left; margin-top:25px; line-height:2;"></div>
             </div>
         </div>
     </div>
@@ -147,128 +102,117 @@
     const BIN_ID = "69946ddd43b1c97be985ee40";
     const URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
-    let userDB = { "hammad": { pin: "0000", role: "super", name: "Hammad (Owner)" } };
-    let stock = [], logs = [], currentUser = null, myChart;
+    let stock = [], logs = [], myChart;
 
-    async function checkLogin() {
-        const id = document.getElementById('userInput').value.toLowerCase().trim();
-        const pin = document.getElementById('pinInput').value;
+    function initSecurity() { if(!localStorage.getItem('QB_SEC')) localStorage.setItem('QB_SEC', '0000'); }
+    function checkAccess(val) { if(val === localStorage.getItem('QB_SEC')) { document.getElementById('lockScreen').style.display='none'; document.getElementById('app').style.display='block'; pullData(); } }
+
+    async function pullData() {
         try {
             const res = await fetch(`${URL}/latest`, { headers: { "X-Master-Key": API_KEY, "X-Bin-Meta": "false" }});
             const data = await res.json();
-            if(data.userDB) userDB = data.userDB;
-            stock = data.stock || []; logs = data.logs || [];
-        } catch(e) { alert("Database Error!"); }
-
-        if((id === "hammad" && pin === "0000") || (userDB[id] && userDB[id].pin === pin)) {
-            currentUser = userDB[id] || { pin: "0000", role: "super", name: "Hammad" };
-            document.getElementById('lockScreen').style.display = 'none';
-            document.getElementById('app').style.display = 'block';
-            document.getElementById('userNameDisplay').innerText = "User: " + currentUser.name;
+            const record = data.record || data;
+            stock = record.stock || [];
+            logs = record.logs || [];
+            document.getElementById('syncLabel').innerText = "Live Sync Active"; 
             renderUI();
-        } else { alert("Invalid Credentials!"); }
+        } catch(e) { document.getElementById('syncLabel').innerText = "Offline"; }
     }
 
     async function pushData() {
-        // Sirf Super Admin ya Admin save kar sakte hain
-        if(currentUser.role === 'viewer') return;
-        await fetch(URL, { method: 'PUT', headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY }, body: JSON.stringify({ stock, logs, userDB }) });
         renderUI();
-    }
-
-    function handleIssue() {
-        const i = document.getElementById('pickAsset').value, n = document.getElementById('empName').value, d = document.getElementById('empDept').value, p = document.getElementById('empPh').value;
-        if(i!=="" && n) {
-            stock[i].status = 'Issued';
-            logs.unshift({ make: stock[i].make, model: stock[i].model, sn: stock[i].serial, name: n, dept: d, ph: p, date: new Date().toLocaleDateString('en-GB'), iso: new Date().toISOString(), status: 'Assigned', by: currentUser.name, usage: 'Active' });
-            pushData();
-        }
-    }
-
-    function handleReturn(idx) {
-        const l = logs[idx]; const i = stock.findIndex(s=>s.serial===l.sn);
-        if(i!==-1){
-            stock[i].status='Available'; l.status='Returned';
-            l.rDate = new Date().toLocaleDateString('en-GB');
-            const diff = Math.ceil(Math.abs(new Date() - new Date(l.iso)) / (1000 * 60 * 60 * 24));
-            l.usage = diff + " Days";
-            pushData();
-        }
-    }
-
-    function renderUI() {
-        const q = document.getElementById('searchBar').value.toLowerCase();
-        
-        // Role Management (Hammad vs Others)
-        const isSuper = currentUser.role === 'super' || currentUser.name.includes('Hammad');
-        document.getElementById('tAdmin').style.display = isSuper ? 'block' : 'none';
-
-        const sel = document.getElementById('pickAsset');
-        sel.innerHTML = '<option value="">-- Select Available Item --</option>';
-        stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.make} ${s.model} (SN: ${s.serial})</option>`; });
-
-        const aB = document.getElementById('activeBody'); aB.innerHTML = '';
-        logs.forEach((l, i) => {
-            if(l.status === 'Assigned' && (l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q) || l.dept.toLowerCase().includes(q))) {
-                aB.innerHTML += `<tr><td><b>${l.make}</b><br><small>${l.sn}</small></td><td>${l.name}</td><td>${l.dept}</td><td>${l.date}</td><td><button onclick="sendWA(${i})" style="background:#22c55e; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold;">WA</button> <button onclick="handleReturn(${i})" style="background:#facc15; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold;">RET</button></td></tr>`;
-            }
-        });
-
-        const sB = document.getElementById('storeBody'); sB.innerHTML = '';
-        stock.forEach((s, i) => { if(s.status === 'Available' && (s.make.toLowerCase().includes(q) || s.serial.toLowerCase().includes(q))) sB.innerHTML += `<tr><td><b>${s.make}</b></td><td>${s.model}</td><td>${s.serial}</td><td><button onclick="stock.splice(${i},1);pushData()" style="color:red; background:none; border:none; font-weight:bold; cursor:pointer;">DEL</button></td></tr>`; });
-
-        const hB = document.getElementById('historyBody'); hB.innerHTML = '';
-        logs.forEach(l => {
-            if(l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q)) {
-                hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.make}</td><td>${l.by}</td><td><span class="usage-tag">${l.usage}</span></td></tr>`;
-            }
-        });
-
-        const uB = document.getElementById('userListBody'); uB.innerHTML = '';
-        for(let id in userDB) {
-            uB.innerHTML += `<tr><td>${id}</td><td>${userDB[id].role}</td><td>${userDB[id].pin}</td><td><button onclick="deleteUser('${id}')" style="color:red; background:none; border:none; cursor:pointer;">Remove</button></td></tr>`;
-        }
-
-        const cin = stock.filter(x => x.status==='Available').length, cout = stock.filter(x => x.status==='Issued').length;
-        document.getElementById('statsBox').innerHTML = `Warehouse: <b>${cin}</b><br>With Staff: <b>${cout}</b><hr>Total Assets: <b>${stock.length}</b>`;
-        if(myChart) myChart.destroy();
-        myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { labels:['In','Out'], datasets:[{data:[cin,cout],backgroundColor:['#10b981','#e11d48'],borderWidth:0}]}, options:{cutout:'80%',plugins:{legend:{display:false}}}});
+        try {
+            await fetch(URL, { method: 'PUT', headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY }, body: JSON.stringify({ stock, logs }) });
+        } catch(e) { console.log("Save error"); }
     }
 
     function nav(p) {
         document.getElementById('viewIssue').style.display = p==='issue'?'block':'none';
         document.getElementById('viewWarehouse').style.display = p==='warehouse'?'block':'none';
-        document.getElementById('viewAdmin').style.display = p==='admin'?'block':'none';
-        document.getElementById('t1').className = p==='issue'?'tab-btn active':'tab-btn';
-        document.getElementById('t2').className = p==='warehouse'?'tab-btn active':'tab-btn';
-        document.getElementById('tAdmin').className = p==='admin'?'tab-btn active':'tab-btn';
+        document.getElementById('tab1').classList.toggle('active', p==='issue');
+        document.getElementById('tab2').classList.toggle('active', p==='warehouse');
     }
 
-    function sendWA(idx) {
-        const l = logs[idx]; let p = l.ph.toString().trim();
-        let cleanP = p.startsWith('0') ? '92' + p.substring(1) : p;
-        // AAP KA CUSTOM MESSAGE
-        let msg = `Dear *${l.name}*,%0A%0AAapko *${l.make} ${l.model}* (SN: ${l.sn}) issue hogya ha aaj ki date *${l.date}* ko Admin Department ki trf se.%0A%0A_QistBazaar Asset Pro_`;
-        window.open(`https://wa.me/${cleanP}?text=${msg}`, '_blank');
-    }
-
-    function handleAdd() {
-        const mk = document.getElementById('addMk').value, mo = document.getElementById('addMo').value, sn = document.getElementById('addSn').value;
-        if(mk && sn) { stock.push({ make: mk, model: mo, serial: sn, status: 'Available' }); pushData(); }
-    }
-
-    async function addNewUser() {
-        const u = document.getElementById('newUserId').value.toLowerCase().replace(/[^a-z0-9]/g, ''), p = document.getElementById('newUserPin').value, r = document.getElementById('newUserRole').value;
-        if(u && p) { 
-            userDB[u] = { pin: p, role: r, name: u.charAt(0).toUpperCase() + u.slice(1) }; 
-            await pushData(); 
-            alert("✅ User Account Created: " + u);
-            document.getElementById('newUserId').value = ''; document.getElementById('newUserPin').value = '';
+    function handleIssue() {
+        const i = document.getElementById('pickAsset').value, n = document.getElementById('empName').value, c = document.getElementById('empCnic').value, d = document.getElementById('empDept').value, p = document.getElementById('empPhone').value;
+        if(i!=="" && n) {
+            const item = stock[i]; item.status = 'Issued';
+            logs.unshift({ make: item.make, model: item.model, sn: item.serial, name: n, cnic: c, dept: d, ph: p, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned', rDate: '-', usage: '-' });
+            pushData();
         }
     }
-    
-    function deleteUser(id) { if(id!=='hammad' && confirm("Delete user?")) { delete userDB[id]; pushData(); } }
-    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Report"), "QB_Asset_Report.xlsx"); }
+
+    function handleReturn(idx) {
+        const log = logs[idx];
+        const item = stock.find(s => s.serial === log.sn);
+        if (item) {
+            item.status = 'Available';
+            log.status = 'Returned';
+            log.rDate = new Date().toLocaleDateString('en-GB');
+            // Usage Calc
+            const d1 = new Date(log.date.split('/').reverse().join('-'));
+            const d2 = new Date();
+            log.usage = Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)) + " Days";
+            pushData();
+        }
+    }
+
+    // --- DELETE FUNCTIONS ---
+    function deleteStock(idx) {
+        if(confirm("Confirm Delete? Warehouse se ye item bilkul khatam ho jayega.")) {
+            stock.splice(idx, 1);
+            pushData();
+        }
+    }
+
+    function deleteLog(idx) {
+        if(confirm("Confirm Delete? Ye history record hamesha ke liye ud jayega.")) {
+            logs.splice(idx, 1);
+            pushData();
+        }
+    }
+
+    function renderUI() {
+        const qS = document.getElementById('searchStore').value.toLowerCase();
+        const qH = document.getElementById('searchHist').value.toLowerCase();
+
+        // Warehouse
+        const sB = document.getElementById('storeBody'); sB.innerHTML = '';
+        stock.forEach((s, i) => { 
+            if(s.status === 'Available' && (s.make.toLowerCase().includes(qS) || s.serial.toLowerCase().includes(qS))) {
+                sB.innerHTML += `<tr><td>${s.make}</td><td>${s.model}</td><td>${s.serial}</td><td><button class="del-btn" onclick="deleteStock(${i})">DELETE ITEM</button></td></tr>`; 
+            }
+        });
+
+        // Active
+        const aB = document.getElementById('activeBody'); aB.innerHTML = '';
+        logs.forEach((l, i) => {
+            if(l.status === 'Assigned') {
+                aB.innerHTML += `<tr><td>${l.make}<br><small>${l.sn}</small></td><td>${l.name}</td><td>${l.date}</td><td><button onclick="handleReturn(${i})" style="background:#facc15;border:none;padding:5px;cursor:pointer;border-radius:4px;">RETURN</button></td></tr>`;
+            }
+        });
+
+        // History
+        const hB = document.getElementById('historyBody'); hB.innerHTML = '';
+        logs.forEach((l, i) => {
+            if(l.name.toLowerCase().includes(qH) || l.sn.toLowerCase().includes(qH)) {
+                hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.make}</td><td><span style="background:#dcfce7;padding:2px 5px;border-radius:4px;">${l.usage}</span></td><td><button class="del-btn" onclick="deleteLog(${i})">DEL LOG</button></td></tr>`;
+            }
+        });
+
+        const cin = stock.filter(x => x.status==='Available').length, cout = stock.filter(x => x.status==='Issued').length;
+        document.getElementById('statsBox').innerHTML = `Warehouse: <b>${cin}</b> | Staff: <b>${cout}</b> | Total: <b>${stock.length}</b>`;
+        
+        const sel = document.getElementById('pickAsset');
+        sel.innerHTML = '<option value="">-- Select Asset --</option>';
+        stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.make} (${s.serial})</option>`; });
+
+        if(myChart) myChart.destroy();
+        myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { labels: ['In','Out'], datasets:[{data:[cin,cout],backgroundColor:['#10b981','#ef4444'],borderWidth:0}]}, options:{cutout:'80%',plugins:{legend:{display:false}}}});
+    }
+
+    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Logs"), "QB_ERP.xlsx"); }
+    setInterval(pullData, 30000);
 </script>
 </body>
 </html>
