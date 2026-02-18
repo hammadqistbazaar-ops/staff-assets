@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>QistBazaar ERP V42.0 - All Fields + Return Alerts</title>
+    <title>QistBazaar ERP V44.0 - Anti-Duplicate & Make/Model</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -73,30 +73,31 @@
 
                     <h3 style="margin-top:30px; color:var(--qb-blue)">Active Staff Assets</h3>
                     <table>
-                        <thead><tr><th>Asset</th><th>Employee</th><th>Dept</th><th>Date</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Asset (Make/Model)</th><th>Employee</th><th>Date</th><th>Action</th></tr></thead>
                         <tbody id="activeBody"></tbody>
                     </table>
                 </div>
 
                 <div id="viewWarehouse" style="display:none">
                     <div id="warehouseForm" style="display:none">
-                        <h3>Add Stock</h3>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                            <input type="text" id="addMk" placeholder="Item Name">
-                            <input type="text" id="addSn" placeholder="Serial / IMEI">
+                        <h3>Add New Stock</h3>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                            <input type="text" id="addMake" placeholder="Make (e.g. Infinix)">
+                            <input type="text" id="addModel" placeholder="Model (e.g. Note 30)">
+                            <input type="text" id="addSn" placeholder="IMEI / Serial">
                         </div>
-                        <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:100%; cursor:pointer;">+ Add Stock</button>
+                        <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:100%; cursor:pointer; font-weight:700;">+ Secure Add Stock</button>
                     </div>
 
                     <h3 style="margin-top:30px;">Inventory Overview</h3>
                     <table>
-                        <thead><tr><th>Item</th><th>Serial</th><th>Status</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Make</th><th>Model</th><th>Serial</th><th>Status</th><th>Action</th></tr></thead>
                         <tbody id="storeBody"></tbody>
                     </table>
 
                     <h3 style="margin-top:40px; color:var(--qb-red); border-top:2px solid #f1f5f9; padding-top:20px;">Master History</h3>
                     <table>
-                        <thead><tr><th>Date</th><th>Employee</th><th>Asset</th><th>CNIC</th><th>Details</th></tr></thead>
+                        <thead><tr><th>Date</th><th>Employee</th><th>Asset Info</th><th>CNIC</th><th>Admin</th><th>Details</th></tr></thead>
                         <tbody id="historyBody"></tbody>
                     </table>
                 </div>
@@ -122,7 +123,7 @@
             <div class="card" style="text-align:center">
                 <canvas id="chart"></canvas>
                 <div id="statsBox" style="text-align:left; margin-top:20px; line-height:2"></div>
-                <button onclick="exportXLS()" style="margin-top:20px; width:100%; padding:12px; border:1px solid #10b981; color:#10b981; background:none; border-radius:10px; font-weight:700; cursor:pointer;">Export Excel</button>
+                <button onclick="exportXLS()" style="margin-top:20px; width:100%; padding:12px; border:1px solid #10b981; color:#10b981; background:none; border-radius:10px; font-weight:700; cursor:pointer;">Export Excel Report</button>
             </div>
         </div>
     </div>
@@ -152,7 +153,7 @@
             document.getElementById('app').style.display = 'block';
             document.getElementById('userNameDisplay').innerText = `User: ${currentUser.name} (${currentUser.role})`;
             renderUI();
-        } else { alert("Invalid Credentials!"); }
+        } else { alert("Credentials Sahi Nahi Hain!"); }
     }
 
     async function pushData() {
@@ -172,7 +173,8 @@
             stock[i].status = 'Issued';
             logs.unshift({ 
                 sn: stock[i].serial, 
-                make: stock[i].make, 
+                make: stock[i].make,
+                model: stock[i].model, 
                 name: n, 
                 dept: d,
                 cnic: c,
@@ -183,7 +185,7 @@
             });
             
             if(ph) {
-                const msg = `Salaam ${n}, QistBazaar ERP: ${stock[i].make} (SN: ${stock[i].serial}) has been assigned to you. Date: ${new Date().toLocaleDateString('en-GB')}.`;
+                const msg = `Salaam ${n}, QistBazaar ERP Alert: ${stock[i].make} ${stock[i].model} (SN: ${stock[i].serial}) has been assigned to you. Date: ${new Date().toLocaleDateString('en-GB')}.`;
                 window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`, '_blank');
             }
             pushData();
@@ -195,7 +197,7 @@
         if(i!==-1){
             stock[i].status='Available'; l.status='Returned';
             if(l.ph) {
-                const msg = `Salaam ${l.name}, your return of ${l.make} (SN: ${l.sn}) has been received. Your record is now CLEAR.`;
+                const msg = `Salaam ${l.name}, your return of ${l.make} ${l.model} (SN: ${l.sn}) has been received and verified. Your record is now CLEAR.`;
                 window.open(`https://wa.me/${l.ph}?text=${encodeURIComponent(msg)}`, '_blank');
             }
             pushData();
@@ -213,23 +215,23 @@
 
         const sel = document.getElementById('pickAsset');
         sel.innerHTML = '<option value="">-- Choose Item --</option>';
-        stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.make} (${s.serial})</option>`; });
+        stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.make} ${s.model} (${s.serial})</option>`; });
 
         const aB = document.getElementById('activeBody'); aB.innerHTML = '';
         logs.forEach((l, i) => {
             if(l.status === 'Assigned' && (l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q))) {
                 let wa = l.ph ? `<a href="https://wa.me/${l.ph}" target="_blank" class="wa-btn">💬</a>` : '';
                 let act = isAdmin ? `<button onclick="handleReturn(${i})" style="background:#facc15; border:none; padding:6px; border-radius:4px; font-weight:bold; cursor:pointer;">RET</button>` : '🔒';
-                aB.innerHTML += `<tr><td>${l.make}<br><small>${l.sn}</small></td><td>${l.name}${wa}</td><td>${l.dept || '-'}</td><td>${l.date}</td><td>${act}</td></tr>`;
+                aB.innerHTML += `<tr><td>${l.make} ${l.model}<br><small>${l.sn}</small></td><td>${l.name}${wa}</td><td>${l.date}</td><td>${act}</td></tr>`;
             }
         });
 
         const sB = document.getElementById('storeBody'); sB.innerHTML = '';
         stock.forEach((s, i) => { 
-            if(s.serial.toLowerCase().includes(q)) {
+            if(s.serial.toLowerCase().includes(q) || s.make.toLowerCase().includes(q)) {
                 let stClass = s.status === 'Available' ? 'available' : 'issued';
                 let del = isSuper ? `<button onclick="stock.splice(${i},1);pushData()" class="del-btn">DELETE</button>` : '';
-                sB.innerHTML += `<tr><td>${s.make}</td><td>${s.serial}</td><td><span class="status-badge ${stClass}">${s.status}</span></td><td>${del}</td></tr>`;
+                sB.innerHTML += `<tr><td>${s.make}</td><td>${s.model}</td><td>${s.serial}</td><td><span class="status-badge ${stClass}">${s.status}</span></td><td>${del}</td></tr>`;
             }
         });
 
@@ -238,7 +240,7 @@
             if(l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q)) {
                 let del = isSuper ? `<button class="del-btn" onclick="logs.splice(${i},1);pushData()">🗑️</button>` : '';
                 let wa = l.ph ? `<a href="https://wa.me/${l.ph}" target="_blank" class="wa-btn">💬</a>` : '';
-                hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}${wa}</td><td>${l.make}<br><small>${l.sn}</small></td><td>${l.cnic || '-'}</td><td><span class="status-badge issued">${l.status}</span> ${del}</td></tr>`;
+                hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}${wa}</td><td>${l.make} ${l.model}<br><small>${l.sn}</small></td><td>${l.cnic || '-'}</td><td>${l.by}</td><td><span class="status-badge issued" style="background:#e2e8f0; color:#475569">${l.status}</span> ${del}</td></tr>`;
             }
         });
 
@@ -251,7 +253,7 @@
         }
 
         const cin = stock.filter(x => x.status==='Available').length, cout = stock.filter(x => x.status==='Issued').length;
-        document.getElementById('statsBox').innerHTML = `Store: <b>${cin}</b> | Staff: <b>${cout}</b>`;
+        document.getElementById('statsBox').innerHTML = `Warehouse: <b>${cin}</b> | Total Issued: <b>${cout}</b>`;
         if(myChart) myChart.destroy();
         myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { labels:['In','Out'], datasets:[{data:[cin,cout],backgroundColor:['#10b981','#e11d48'],borderWidth:0}]}, options:{cutout:'80%',plugins:{legend:{display:false}}}});
     }
@@ -266,9 +268,24 @@
     }
 
     function handleAdd() {
-        const mk = document.getElementById('addMk').value, sn = document.getElementById('addSn').value.trim();
-        if(stock.some(s => s.serial === sn)) return alert("Duplicate Serial Blocked!");
-        if(mk && sn) { stock.push({ make: mk, serial: sn, status: 'Available' }); pushData(); }
+        const make = document.getElementById('addMake').value.trim();
+        const model = document.getElementById('addModel').value.trim();
+        const sn = document.getElementById('addSn').value.trim();
+
+        // 🛑 DUPLICATE CHECKER (IMEI/Serial logic)
+        if(stock.some(s => s.serial === sn)) {
+            return alert("🚫 STOP! Ye IMEI / Serial pehle se system mein mojud hai. Duplicate entry block kar di gayi hai.");
+        }
+
+        if(make && model && sn) { 
+            stock.push({ make: make, model: model, serial: sn, status: 'Available' }); 
+            document.getElementById('addMake').value = '';
+            document.getElementById('addModel').value = '';
+            document.getElementById('addSn').value = '';
+            pushData(); 
+        } else {
+            alert("Bhai, saari fields fill karein (Make, Model aur Serial).");
+        }
     }
 
     async function addNewUser() {
@@ -276,7 +293,7 @@
         if(u && p) { userDB[u] = { pin: p, role: r, name: u }; await pushData(); }
     }
     
-    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Report"), "QB_Asset_Log.xlsx"); }
+    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "ERP_Log"), "QistBazaar_Report.xlsx"); }
 </script>
 </body>
 </html>
