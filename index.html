@@ -2,138 +2,116 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>QistBazaar ERP V32.5 - Modern UI</title>
+    <title>QistBazaar ERP V32.6 - Full Features</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --qb-blue: #2563eb; --qb-red: #f43f5e; --bg: #f8fafc; --text: #1e293b; }
-        body { background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); margin: 0; }
-        
-        /* Modern Login */
-        #lockScreen { position: fixed; inset: 0; background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%); display: flex; justify-content: center; align-items: center; z-index: 10000; }
-        .login-card { background: white; padding: 40px; border-radius: 24px; text-align: center; width: 380px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
-        .login-card h2 { color: var(--qb-blue); margin-bottom: 8px; font-weight: 700; }
-        
-        /* Navbar */
-        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 40px; background: white; border-bottom: 1px solid #e2e8f0; sticky: top; }
-        .logo { font-size: 22px; font-weight: 800; color: #1e3a8a; letter-spacing: -0.5px; }
+        :root { --qb-blue: #2563eb; --qb-red: #f43f5e; --bg: #f8fafc; }
+        body { background: var(--bg); font-family: 'Inter', sans-serif; margin: 0; color: #1e293b; }
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 40px; background: white; border-bottom: 1px solid #e2e8f0; }
+        .logo { font-size: 22px; font-weight: 800; color: #1e3a8a; }
         .logo span { color: var(--qb-red); }
-        
-        /* Tabs & Layout */
-        .tabs { display: flex; padding: 20px 40px 0; gap: 8px; }
-        .tab-btn { padding: 10px 20px; border: none; border-radius: 12px 12px 0 0; cursor: pointer; font-weight: 600; background: #e2e8f0; color: #64748b; transition: 0.3s; }
-        .tab-btn.active { background: white; color: var(--qb-blue); box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05); }
-        
-        .main-grid { display: grid; grid-template-columns: 1fr 380px; gap: 24px; padding: 0 40px 40px; }
-        .card { background: white; padding: 28px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.06); border: 1px solid #f1f5f9; }
-        
-        /* Inputs & Tables */
-        input, select { padding: 12px 16px; border: 1.5px solid #e2e8f0; border-radius: 12px; width: 100%; margin-bottom: 12px; font-family: inherit; transition: 0.2s; }
-        input:focus { border-color: var(--qb-blue); outline: none; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1); }
-        
-        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 16px; }
-        th { background: #f8fafc; text-align: left; padding: 14px; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; }
-        td { padding: 14px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155; }
-        
-        /* Status Badges */
-        .badge { padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .main-grid { display: grid; grid-template-columns: 1fr 350px; gap: 25px; padding: 25px 40px; }
+        .card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        input, select { padding: 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; width: 100%; margin-bottom: 10px; box-sizing: border-box; }
+        .search-box { margin-bottom: 20px; border: 2px solid var(--qb-blue); font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; padding: 12px; font-size: 11px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid #f1f5f9; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
         .badge-active { background: #dcfce7; color: #166534; }
         .badge-usage { background: #fef9c3; color: #854d0e; }
-        
         .admin-only { display: none; }
-        button { cursor: pointer; transition: 0.2s; font-family: 'Inter', sans-serif; }
-        .btn-primary { background: var(--qb-blue); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 600; width: 100%; }
-        .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); }
+        .tabs { display: flex; gap: 10px; padding: 0 40px; }
+        .tab-btn { padding: 10px 20px; border: none; border-radius: 10px 10px 0 0; cursor: pointer; background: #e2e8f0; font-weight: 600; }
+        .tab-btn.active { background: white; color: var(--qb-blue); border-bottom: 3px solid var(--qb-red); }
+        #lockScreen { position: fixed; inset: 0; background: var(--qb-blue); display: flex; justify-content: center; align-items: center; z-index: 10000; }
     </style>
 </head>
 <body>
 
     <div id="lockScreen">
-        <div class="login-card">
+        <div style="background:white; padding:40px; border-radius:24px; width:350px; text-align:center;">
             <div class="logo">Qist<span>Bazaar</span></div>
-            <p style="color: #64748b; font-size: 14px; margin: 10px 0 25px;">Inventory Management System</p>
-            <input type="text" id="userInput" placeholder="Username">
+            <input type="text" id="userInput" placeholder="Username" style="margin-top:20px;">
             <input type="password" id="pinInput" placeholder="PIN">
-            <button class="btn-primary" onclick="checkLogin()">Sign In</button>
-            <p id="loginError" style="color:var(--qb-red); font-size:12px; margin-top:15px; display:none; font-weight:600;">Invalid credentials, try again!</p>
+            <button onclick="checkLogin()" style="width:100%; padding:14px; background:var(--qb-blue); color:white; border:none; border-radius:10px; font-weight:700; cursor:pointer;">Login</button>
         </div>
     </div>
 
     <div id="app" style="display:none">
         <div class="navbar">
-            <div class="logo">Qist<span>Bazaar</span> <span id="userBadge" style="margin-left:12px; font-size:12px; font-weight:500; color:#64748b; background:#f1f5f9; padding:4px 12px; border-radius:20px;"></span></div>
-            <button onclick="location.reload()" style="background:none; border:1px solid #e2e8f0; padding:8px 16px; border-radius:10px; font-weight:600; color:#64748b;">Logout</button>
+            <div class="logo">Qist<span>Bazaar</span></div>
+            <button onclick="location.reload()" style="background:none; border:1px solid #e2e8f0; padding:8px 15px; border-radius:8px;">Logout</button>
         </div>
 
         <div class="tabs">
-            <button id="tab1" class="tab-btn active" onclick="nav('issue')">Issuance</button>
-            <button id="tab2" class="tab-btn" onclick="nav('warehouse')">Inventory</button>
-            <button id="tabAdmin" class="tab-btn admin-only" onclick="nav('admin')">Users ⚙️</button>
+            <button id="t1" class="tab-btn active" onclick="nav('issue')">Issuance</button>
+            <button id="t2" class="tab-btn" onclick="nav('ware')">Inventory</button>
+            <button id="t3" class="tab-btn admin-only" onclick="nav('adm')">Users ⚙️</button>
         </div>
 
         <div class="main-grid">
             <div class="card">
+                <input type="text" id="globalSearch" class="search-box" placeholder="🔍 Search by Name, Serial, or Department..." onkeyup="renderUI()">
+
                 <div id="viewIssue">
                     <div class="admin-only">
-                        <h3 style="margin-top:0;">New Handover</h3>
+                        <h3>Assign Asset</h3>
                         <select id="pickAsset"></select>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-                            <input type="text" id="empName" placeholder="Employee Name">
-                            <input type="text" id="empCnic" placeholder="CNIC Number">
-                            <input type="text" id="empDept" placeholder="Branch">
-                            <input type="text" id="empPhone" placeholder="WhatsApp Number">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                            <input type="text" id="empName" placeholder="Staff Name">
+                            <input type="text" id="empDept" placeholder="Department/Branch">
+                            <input type="text" id="empCnic" placeholder="CNIC">
+                            <input type="text" id="empPh" placeholder="WhatsApp">
                         </div>
-                        <button class="btn-primary" style="background:var(--qb-red)" onclick="handleIssue()">Assign Asset ✅</button>
+                        <button onclick="handleIssue()" style="width:100%; padding:12px; background:var(--qb-red); color:white; border:none; border-radius:10px; font-weight:700;">Issue Now</button>
                     </div>
-                    <h3>Active Staff Assets</h3>
-                    <table>
-                        <thead><tr><th>Asset Detail</th><th>Staff Name</th><th>Branch</th><th>Date</th><th>Action</th></tr></thead>
+                    <h3>Active Records</h3>
+                    <table id="activeTable">
+                        <thead><tr><th>Asset</th><th>Staff</th><th>Dept</th><th>Date</th><th>Action</th></tr></thead>
                         <tbody id="activeBody"></tbody>
                     </table>
                 </div>
 
-                <div id="viewWarehouse" style="display:none">
+                <div id="viewWare" style="display:none">
                     <div class="admin-only">
-                        <h3 style="margin-top:0;">Stock Registry</h3>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
+                        <h3>Add Stock</h3>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
                             <input type="text" id="addMk" placeholder="Make">
                             <input type="text" id="addMo" placeholder="Model">
-                            <input type="text" id="addSn" placeholder="Serial/IMEI">
+                            <input type="text" id="addSn" placeholder="Serial">
                         </div>
-                        <button class="btn-primary" onclick="handleAdd()">+ Register Stock</button>
+                        <button onclick="handleAdd()" style="width:100%; padding:12px; background:var(--qb-blue); color:white; border:none; border-radius:10px;">Add to Inventory</button>
                     </div>
-                    <table>
-                        <thead><tr><th>Make</th><th>Model</th><th>Serial</th><th class="admin-only">DEL</th></tr></thead>
+                    <table style="margin-top:20px;">
+                        <thead><tr><th>Make</th><th>Model</th><th>Serial</th><th class="admin-only">Del</th></tr></thead>
                         <tbody id="storeBody"></tbody>
                     </table>
-                    <h3 style="margin-top:40px;">Detailed Audit Log</h3>
+                    <h3 style="margin-top:30px;">Audit History</h3>
                     <table>
-                        <thead><tr><th>Date</th><th>Employee</th><th>Asset</th><th>Handled By</th><th>Usage Days</th></tr></thead>
+                        <thead><tr><th>Date</th><th>Staff</th><th>Asset</th><th>By</th><th>Usage</th></tr></thead>
                         <tbody id="historyBody"></tbody>
                     </table>
                 </div>
 
-                <div id="viewAdmin" style="display:none">
-                    <h3 style="margin-top:0;">Access Control</h3>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
-                        <input type="text" id="newUserId" placeholder="Username">
-                        <input type="text" id="newUserPin" placeholder="PIN">
-                        <select id="newUserRole"><option value="viewer">Viewer</option><option value="admin">Admin</option></select>
+                <div id="viewAdm" style="display:none">
+                    <h3>User Access</h3>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                        <input type="text" id="newU" placeholder="Username">
+                        <input type="text" id="newP" placeholder="PIN">
+                        <select id="newR"><option value="viewer">Viewer</option><option value="admin">Admin</option></select>
                     </div>
-                    <button class="btn-primary" onclick="addNewUser()">Add User Account</button>
-                    <table style="margin-top:20px;">
-                        <thead><tr><th>User</th><th>Role</th><th>PIN</th><th>Action</th></tr></thead>
-                        <tbody id="userListBody"></tbody>
-                    </table>
+                    <button onclick="addNewUser()" style="width:100%; padding:12px; background:var(--qb-blue); color:white; border:none; border-radius:10px;">Create User</button>
+                    <tbody id="userListBody"></tbody>
                 </div>
             </div>
 
-            <div class="card" style="display: flex; flex-direction: column; align-items: center;">
-                <h4 style="margin-bottom:20px; color:#64748b;">Inventory Status</h4>
-                <canvas id="chart" style="max-width: 250px;"></canvas>
-                <div id="statsBox" style="margin-top:30px; width:100%;"></div>
-                <button onclick="exportXLS()" style="margin-top:20px; width:100%; border:1px solid #10b981; color:#10b981; background:none; padding:12px; border-radius:12px; font-weight:600;">Download Excel Report</button>
+            <div class="card">
+                <canvas id="chart"></canvas>
+                <div id="stats" style="margin-top:20px;"></div>
+                <button onclick="exportXLS()" style="width:100%; margin-top:20px; padding:10px; border:1px solid #10b981; background:none; color:#10b981; border-radius:10px; font-weight:600;">Download Report</button>
             </div>
         </div>
     </div>
@@ -147,7 +125,7 @@
     let stock = [], logs = [], currentUser = null, myChart;
 
     async function checkLogin() {
-        const id = document.getElementById('userInput').value.toLowerCase();
+        const id = document.getElementById('userInput').value.toLowerCase().trim();
         const pin = document.getElementById('pinInput').value;
         try {
             const res = await fetch(`${URL}/latest`, { headers: { "X-Master-Key": API_KEY, "X-Bin-Meta": "false" }});
@@ -159,9 +137,8 @@
             currentUser = userDB[id] || { pin: "0000", role: "admin", name: "Hammad" };
             document.getElementById('lockScreen').style.display = 'none';
             document.getElementById('app').style.display = 'block';
-            document.getElementById('userBadge').innerText = "Logged in as " + currentUser.name;
             renderUI();
-        } else { document.getElementById('loginError').style.display = 'block'; }
+        } else { alert("Wrong PIN!"); }
     }
 
     async function pushData() {
@@ -171,10 +148,10 @@
     }
 
     function handleIssue() {
-        const i = document.getElementById('pickAsset').value, n = document.getElementById('empName').value, c = document.getElementById('empCnic').value, d = document.getElementById('empDept').value, p = document.getElementById('empPhone').value;
+        const i = document.getElementById('pickAsset').value, n = document.getElementById('empName').value, d = document.getElementById('empDept').value, c = document.getElementById('empCnic').value, p = document.getElementById('empPh').value;
         if(i!=="" && n) {
             stock[i].status = 'Issued';
-            logs.unshift({ make: stock[i].make, model: stock[i].model, sn: stock[i].serial, name: n, cnic: c, dept: d, ph: p, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned', by: currentUser.name, usage: 'Active' });
+            logs.unshift({ make: stock[i].make, model: stock[i].model, sn: stock[i].serial, name: n, dept: d, cnic: c, ph: p, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned', by: currentUser.name, usage: 'Active' });
             pushData();
         }
     }
@@ -183,9 +160,9 @@
         const l = logs[idx]; const i = stock.findIndex(s=>s.serial===l.sn);
         if(i!==-1){
             stock[i].status='Available'; l.status='Returned';
-            const issueDate = parseDate(l.date);
-            const diffDays = Math.ceil(Math.abs(new Date() - issueDate) / (1000 * 60 * 60 * 24));
-            l.usage = diffDays + " Days";
+            const d1 = parseDate(l.date); const d2 = new Date();
+            const days = Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24));
+            l.usage = days + " Days";
             pushData();
         }
     }
@@ -193,48 +170,46 @@
     function parseDate(s) { const p = s.split('/'); return new Date(p[2], p[1]-1, p[0]); }
 
     function renderUI() {
+        const q = document.getElementById('globalSearch').value.toLowerCase();
         const isAdmin = currentUser.role === 'admin';
         document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'block' : 'none');
-        
+
         const sel = document.getElementById('pickAsset');
-        sel.innerHTML = '<option value="">-- Choose Asset from Warehouse --</option>';
+        sel.innerHTML = '<option value="">-- Select Asset --</option>';
         stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.make} ${s.model} (${s.serial})</option>`; });
 
         const aB = document.getElementById('activeBody'); aB.innerHTML = '';
         logs.forEach((l, i) => {
-            if(l.status === 'Assigned') {
-                let wa = isAdmin ? `<button onclick="sendWA(${i})" style="border:none; background:#22c55e; color:white; padding:6px 10px; border-radius:8px; margin-right:5px;">WA</button>` : '';
-                let ret = isAdmin ? `<button onclick="handleReturn(${i})" style="border:none; background:#f59e0b; color:white; padding:6px 10px; border-radius:8px;">RET</button>` : '<span class="badge badge-active">Live</span>';
-                aB.innerHTML += `<tr><td><b>${l.make} ${l.model}</b><br><small style="color:#64748b">${l.sn}</small></td><td>${l.name}<br><small>${l.cnic}</small></td><td>${l.dept}</td><td>${l.date}</td><td>${wa}${ret}</td></tr>`;
+            if(l.status === 'Assigned' && (l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q) || l.dept.toLowerCase().includes(q))) {
+                let wa = isAdmin ? `<button onclick="sendWA(${i})" style="background:#22c55e; color:white; border:none; padding:5px 8px; border-radius:6px; cursor:pointer;">WA</button>` : '';
+                aB.innerHTML += `<tr><td><b>${l.make}</b><br>${l.sn}</td><td>${l.name}</td><td>${l.dept}</td><td>${l.date}</td><td>${wa} <button onclick="handleReturn(${i})" style="background:#f59e0b; color:white; border:none; padding:5px 8px; border-radius:6px; cursor:pointer;">RET</button></td></tr>`;
             }
         });
 
         const sB = document.getElementById('storeBody'); sB.innerHTML = '';
-        stock.forEach((s, i) => { if(s.status === 'Available') sB.innerHTML += `<tr><td>${s.make}</td><td>${s.model}</td><td>${s.serial}</td><td class="admin-only"><button onclick="deleteStock(${i})" style="border:none; color:#ef4444; background:none;">DEL</button></td></tr>`; });
+        stock.forEach((s, i) => { if(s.status === 'Available' && (s.make.toLowerCase().includes(q) || s.serial.toLowerCase().includes(q))) sB.innerHTML += `<tr><td>${s.make}</td><td>${s.model}</td><td>${s.serial}</td><td class="admin-only"><button onclick="deleteStock(${i})" style="color:red; background:none; border:none;">Del</button></td></tr>`; });
 
         const hB = document.getElementById('historyBody'); hB.innerHTML = '';
         logs.forEach(l => {
-            let usageStyle = l.usage === 'Active' ? 'badge-active' : 'badge-usage';
-            hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.make}</td><td><span class="user-tag">${l.by || 'System'}</span></td><td><span class="badge ${usageStyle}">${l.usage}</span></td></tr>`;
+            if(l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q)) {
+                hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.make}</td><td>${l.by || 'Admin'}</td><td><span class="badge ${l.usage==='Active'?'badge-active':'badge-usage'}">${l.usage}</span></td></tr>`;
+            }
         });
 
-        const uB = document.getElementById('userListBody'); uB.innerHTML = '';
-        for(let id in userDB) uB.innerHTML += `<tr><td>${id}</td><td>${userDB[id].role}</td><td>${userDB[id].pin}</td><td><button onclick="deleteUser('${id}')" style="border:none; color:#ef4444; background:none;">Remove</button></td></tr>`;
-
         const cin = stock.filter(x => x.status==='Available').length, cout = stock.filter(x => x.status==='Issued').length;
-        document.getElementById('statsBox').innerHTML = `<div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span>Available</span><b>${cin}</b></div><div style="display:flex; justify-content:space-between;"><span>Issued</span><b>${cout}</b></div>`;
+        document.getElementById('stats').innerHTML = `Store: <b>${cin}</b> | Issued: <b>${cout}</b>`;
         if(myChart) myChart.destroy();
-        myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { labels:['Store','Staff'], datasets:[{data:[cin,cout],backgroundColor:['#2563eb','#f43f5e'],borderWidth:0}]}, options:{cutout:'85%',plugins:{legend:{display:false}}}});
+        myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { labels:['Available','Issued'], datasets:[{data:[cin,cout],backgroundColor:['#2563eb','#f43f5e']}]}, options:{cutout:'80%',plugins:{legend:{display:false}}}});
         if(isAdmin) document.querySelectorAll('.admin-only').forEach(el => el.style.display = (el.tagName==='TH'||el.tagName==='TD')?'table-cell':'block');
     }
 
     function nav(p) {
         document.getElementById('viewIssue').style.display = p==='issue'?'block':'none';
-        document.getElementById('viewWarehouse').style.display = p==='warehouse'?'block':'none';
-        document.getElementById('viewAdmin').style.display = p==='admin'?'block':'none';
-        document.getElementById('tab1').classList.toggle('active', p==='issue');
-        document.getElementById('tab2').classList.toggle('active', p==='warehouse');
-        document.getElementById('tabAdmin').classList.toggle('active', p==='admin');
+        document.getElementById('viewWare').style.display = p==='ware'?'block':'none';
+        document.getElementById('viewAdm').style.display = p==='adm'?'block':'none';
+        document.getElementById('t1').className = p==='issue'?'tab-btn active':'tab-btn';
+        document.getElementById('t2').className = p==='ware'?'tab-btn active':'tab-btn';
+        document.getElementById('t3').className = p==='adm'?'tab-btn active':'tab-btn';
     }
 
     function sendWA(idx) {
@@ -248,8 +223,12 @@
         if(mk && sn) { stock.push({ make: mk, model: mo, serial: sn, status: 'Available' }); pushData(); }
     }
 
-    function deleteStock(i) { if(confirm("Delete item?")) { stock.splice(i,1); pushData(); } }
-    function deleteUser(id) { if(id!=='hammad') { delete userDB[id]; pushData(); } }
+    function deleteStock(i) { if(confirm("Del?")) { stock.splice(i,1); pushData(); } }
+    async function addNewUser() {
+        const u = document.getElementById('newU').value.toLowerCase().replace(/[^a-z0-9]/g, ''), p = document.getElementById('newP').value, r = document.getElementById('newR').value;
+        if(u && p) { userDB[u] = { pin: p, role: r, name: u.charAt(0).toUpperCase() + u.slice(1) }; await pushData(); alert("User Saved!"); }
+    }
+    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Report"), "QB_ERP.xlsx"); }
 </script>
 </body>
 </html>
