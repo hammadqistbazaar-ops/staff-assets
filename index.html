@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>QistBazaar ERP V36.0 - Permissions Fixed</title>
+    <title>QistBazaar ERP V37.0 - Final Permission Fix</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -57,7 +57,7 @@
                 <input type="text" id="searchBar" placeholder="🔍 Search records..." onkeyup="renderUI()" style="border: 2px solid var(--qb-blue);">
                 
                 <div id="viewIssue">
-                    <div id="issuanceForm">
+                    <div id="issuanceForm" style="display:none">
                         <h3>Register New Handover</h3>
                         <select id="pickAsset" style="border: 2px solid var(--qb-blue); font-weight:bold;"></select>
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
@@ -77,7 +77,7 @@
                 </div>
 
                 <div id="viewWarehouse" style="display:none">
-                    <div id="warehouseForm">
+                    <div id="warehouseForm" style="display:none">
                         <h3>Add Stock</h3>
                         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
                             <input type="text" id="addMk" placeholder="Make">
@@ -106,7 +106,7 @@
                         <input type="text" id="newUserId" placeholder="Username">
                         <input type="text" id="newUserPin" placeholder="PIN">
                         <select id="newUserRole">
-                            <option value="admin">Admin (No Delete)</option>
+                            <option value="admin">Admin (Add/Issue Only)</option>
                             <option value="viewer">Viewer (Read Only)</option>
                         </select>
                     </div>
@@ -142,15 +142,15 @@
             const data = await res.json();
             if(data.userDB) userDB = data.userDB;
             stock = data.stock || []; logs = data.logs || [];
-        } catch(e) { console.log("Sync Error"); }
+        } catch(e) { console.log("Initial Sync"); }
 
         if(userDB[id] && userDB[id].pin === pin) {
             currentUser = userDB[id];
             document.getElementById('lockScreen').style.display = 'none';
             document.getElementById('app').style.display = 'block';
-            document.getElementById('userNameDisplay').innerText = "Logged in as: " + currentUser.name;
+            document.getElementById('userNameDisplay').innerText = "User: " + currentUser.name + " (" + currentUser.role + ")";
             renderUI();
-        } else { alert("Invalid Credentials"); }
+        } else { alert("Bhai, credentials sahi dalo!"); }
     }
 
     async function pushData() {
@@ -160,10 +160,9 @@
     }
 
     function handleIssue() {
-        if(currentUser.role === 'viewer') return alert("Permission Denied");
         const i = document.getElementById('pickAsset').value, n = document.getElementById('empName').value;
         if(i!=="" && n) {
-            if(stock[i].status === 'Issued') return alert("Abey bhai, ye pehle hi kisi ke paas hai!");
+            if(stock.some(s => s.serial === stock[i].serial && s.status === 'Issued')) return alert("Bhai ye pehle se bahar hai!");
             stock[i].status = 'Issued';
             logs.unshift({ make: stock[i].make, model: stock[i].model, sn: stock[i].serial, name: n, dept: document.getElementById('empDept').value, ph: document.getElementById('empPh').value, date: new Date().toLocaleDateString('en-GB'), iso: new Date().toISOString(), status: 'Assigned', by: currentUser.name, usage: 'Active' });
             pushData();
@@ -171,7 +170,6 @@
     }
 
     function handleReturn(idx) {
-        if(currentUser.role === 'viewer') return alert("Permission Denied");
         const l = logs[idx]; const i = stock.findIndex(s=>s.serial===l.sn);
         if(i!==-1){
             stock[i].status='Available'; l.status='Returned';
@@ -184,14 +182,12 @@
 
     function renderUI() {
         const q = document.getElementById('searchBar').value.toLowerCase();
-        const isSuper = currentUser.role === 'super' || currentUser.name.toLowerCase() === 'hammad';
-        
-        // Tab Control
+        const isSuper = currentUser.role === 'super';
+        const isAdmin = currentUser.role === 'admin' || isSuper;
+
         document.getElementById('tAdmin').style.display = isSuper ? 'block' : 'none';
-        
-        // Action Forms visibility
-        document.getElementById('issuanceForm').style.display = currentUser.role === 'viewer' ? 'none' : 'block';
-        document.getElementById('warehouseForm').style.display = currentUser.role === 'viewer' ? 'none' : 'block';
+        document.getElementById('issuanceForm').style.display = isAdmin ? 'block' : 'none';
+        document.getElementById('warehouseForm').style.display = isAdmin ? 'block' : 'none';
 
         const sel = document.getElementById('pickAsset');
         sel.innerHTML = '<option value="">-- Choose Item --</option>';
@@ -201,8 +197,8 @@
         logs.forEach((l, i) => {
             if(l.status === 'Assigned' && (l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q))) {
                 let wa = l.ph ? `<a href="https://wa.me/${l.ph}" target="_blank" class="wa-btn">💬</a>` : '';
-                let retBtn = currentUser.role !== 'viewer' ? `<button onclick="handleReturn(${i})" style="background:#facc15; border:none; padding:6px; border-radius:4px; font-weight:bold; cursor:pointer;">RET</button>` : 'READ';
-                aB.innerHTML += `<tr><td>${l.make}<br><small>${l.sn}</small></td><td>${l.name}${wa}</td><td>${l.date}</td><td>${retBtn}</td></tr>`;
+                let act = isAdmin ? `<button onclick="handleReturn(${i})" style="background:#facc15; border:none; padding:6px; border-radius:4px; font-weight:bold; cursor:pointer;">RET</button>` : 'Locked';
+                aB.innerHTML += `<tr><td>${l.make}<br><small>${l.sn}</small></td><td>${l.name}${wa}</td><td>${l.date}</td><td>${act}</td></tr>`;
             }
         });
 
@@ -217,22 +213,23 @@
         const hB = document.getElementById('historyBody'); hB.innerHTML = '';
         logs.forEach((l, i) => {
             if(l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q)) {
-                let wa = l.ph ? `<a href="https://wa.me/${l.ph}" target="_blank" class="wa-btn">💬</a>` : '';
                 let delBtn = isSuper ? `<button class="del-btn" onclick="logs.splice(${i},1);pushData()">🗑️</button>` : '';
-                hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}${wa}</td><td>${l.make}</td><td>${l.by || 'System'}</td><td><span class="usage-tag">${l.usage}</span>${delBtn}</td></tr>`;
+                let wa = l.ph ? `<a href="https://wa.me/${l.ph}" target="_blank" class="wa-btn">💬</a>` : '';
+                hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}${wa}</td><td>${l.make}</td><td>${l.by || 'Sys'}</td><td><span class="usage-tag">${l.usage}</span>${delBtn}</td></tr>`;
             }
         });
 
-        const uB = document.getElementById('userListBody'); if(uB) {
-            uB.innerHTML = '';
+        const uList = document.getElementById('userListBody');
+        if(uList) {
+            uList.innerHTML = '';
             for(let id in userDB) {
-                let remBtn = id !== 'hammad' ? `<button onclick="delete userDB['${id}'];pushData()" style="color:red;border:none;background:none;cursor:pointer">Remove</button>` : 'System Root';
-                uB.innerHTML += `<tr><td>${id}</td><td>${userDB[id].role}</td><td>${remBtn}</td></tr>`;
+                let action = id === 'hammad' ? 'System Root' : `<button onclick="delete userDB['${id}'];pushData()" style="color:red;border:none;background:none;cursor:pointer">Remove</button>`;
+                uList.innerHTML += `<tr><td>${id}</td><td>${userDB[id].role}</td><td>${action}</td></tr>`;
             }
         }
 
         const cin = stock.filter(x => x.status==='Available').length, cout = stock.filter(x => x.status==='Issued').length;
-        document.getElementById('statsBox').innerHTML = `In Warehouse: <b>${cin}</b><br>With Staff: <b>${cout}</b>`;
+        document.getElementById('statsBox').innerHTML = `Store: <b>${cin}</b> | Staff: <b>${cout}</b>`;
         if(myChart) myChart.destroy();
         myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { labels:['In','Out'], datasets:[{data:[cin,cout],backgroundColor:['#10b981','#e11d48'],borderWidth:0}]}, options:{cutout:'80%',plugins:{legend:{display:false}}}});
     }
@@ -248,16 +245,16 @@
 
     function handleAdd() {
         const mk = document.getElementById('addMk').value, sn = document.getElementById('addSn').value;
-        if(stock.some(s => s.serial === sn)) return alert("Bhai ye serial pehle se system mein hai!");
+        if(stock.some(s => s.serial === sn)) return alert("Ye serial pehle se maujood hai!");
         if(mk && sn) { stock.push({ make: mk, model: document.getElementById('addMo').value, serial: sn, status: 'Available' }); pushData(); }
     }
 
     async function addNewUser() {
-        const u = document.getElementById('newUserId').value.toLowerCase().trim(), p = document.getElementById('newUserPin').value;
-        if(u && p) { userDB[u] = { pin: p, role: document.getElementById('newUserRole').value, name: u }; await pushData(); }
+        const u = document.getElementById('newUserId').value.toLowerCase().trim(), p = document.getElementById('newUserPin').value, r = document.getElementById('newUserRole').value;
+        if(u && p) { userDB[u] = { pin: p, role: r, name: u }; await pushData(); }
     }
     
-    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Report"), "QB_Asset_Report.xlsx"); }
+    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Report"), "QB_Report.xlsx"); }
 </script>
 </body>
 </html>
