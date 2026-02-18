@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>QistBazaar ERP V46.0 - WhatsApp Protocol Fixed</title>
+    <title>QistBazaar ERP V45.0 - WA Fix</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -23,11 +23,12 @@
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th { background: #f8fafc; text-align: left; padding: 12px; font-size: 11px; color: var(--qb-blue); border-bottom: 2px solid #edf2f7; text-transform: uppercase; }
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-        .wa-btn { color: #22c55e; text-decoration: none; font-size: 18px; font-weight:bold; cursor: pointer; }
+        .wa-btn { color: #25d366; text-decoration: none; font-size: 18px; margin-left: 5px; cursor: pointer; }
         .del-btn { color: var(--qb-red); border: 1px solid var(--qb-red); background: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; }
         .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
         .available { background: #dcfce7; color: #166534; }
         .issued { background: #fee2e2; color: #991b1b; }
+        #waModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center; }
     </style>
 </head>
 <body>
@@ -35,10 +36,19 @@
     <div id="lockScreen">
         <div class="login-card">
             <div class="logo">Qist<span>Bazaar</span></div>
-            <p style="color:#64748b; font-size:14px; margin-bottom:20px;">Security Access Control</p>
+            <p style="color:#64748b; font-size:14px; margin-bottom:20px;">Asset Management Pro</p>
             <input type="text" id="userInput" placeholder="Username">
             <input type="password" id="pinInput" placeholder="PIN">
             <button onclick="checkLogin()" style="background:var(--qb-blue); color:white; border:none; padding:14px; border-radius:8px; width:100%; cursor:pointer; font-weight:700;">Sign In</button>
+        </div>
+    </div>
+
+    <div id="waModal">
+        <div class="login-card">
+            <h3 style="color:#25d366">WhatsApp Trigger</h3>
+            <p id="waMsgPreview" style="font-size:12px; color:#64748b; margin-bottom:20px;"></p>
+            <a id="waFinalBtn" target="_blank" onclick="closeWa()" style="background:#25d366; color:white; text-decoration:none; padding:12px; border-radius:8px; display:block; font-weight:700;">Send Message Now ➔</a>
+            <button onclick="closeWa()" style="margin-top:10px; background:none; border:none; color:gray; cursor:pointer;">Skip</button>
         </div>
     </div>
 
@@ -56,7 +66,7 @@
 
         <div class="main-grid">
             <div class="card">
-                <input type="text" id="searchBar" placeholder="🔍 Search serial, name or model..." onkeyup="renderUI()" style="border: 2px solid var(--qb-blue);">
+                <input type="text" id="searchBar" placeholder="🔍 Search records..." onkeyup="renderUI()" style="border: 2px solid var(--qb-blue);">
                 
                 <div id="viewIssue">
                     <div id="issuanceForm" style="display:none">
@@ -66,7 +76,7 @@
                             <input type="text" id="empName" placeholder="Employee Name">
                             <input type="text" id="empDept" placeholder="Department">
                             <input type="text" id="empCNIC" placeholder="CNIC Number">
-                            <input type="text" id="empPh" placeholder="923xxxxxxxxx">
+                            <input type="text" id="empPh" placeholder="923xxxxxxxxx (WhatsApp)">
                         </div>
                         <button onclick="handleIssue()" style="background:var(--qb-red); color:white; border:none; padding:14px; border-radius:8px; width:100%; cursor:pointer; font-weight:700;">Assign Asset ✅</button>
                     </div>
@@ -92,9 +102,9 @@
                         <thead><tr><th>Make</th><th>Model</th><th>Serial</th><th>Status</th><th>Action</th></tr></thead>
                         <tbody id="storeBody"></tbody>
                     </table>
-                    <h3 style="margin-top:40px; color:var(--qb-red); border-top:2px solid #f1f5f9; padding-top:20px;">Master Movement History</h3>
+                    <h3 style="margin-top:40px; color:var(--qb-red); border-top:2px solid #f1f5f9; padding-top:20px;">Master History</h3>
                     <table>
-                        <thead><tr><th>Date</th><th>Employee</th><th>Asset Detail</th><th>CNIC</th><th>Admin</th><th>Status</th></tr></thead>
+                        <thead><tr><th>Date</th><th>Employee</th><th>Asset Info</th><th>CNIC</th><th>Admin</th><th>Details</th></tr></thead>
                         <tbody id="historyBody"></tbody>
                     </table>
                 </div>
@@ -117,7 +127,7 @@
             <div class="card" style="text-align:center">
                 <canvas id="chart"></canvas>
                 <div id="statsBox" style="text-align:left; margin-top:20px; line-height:2"></div>
-                <button onclick="exportXLS()" style="margin-top:20px; width:100%; padding:12px; border:1px solid #10b981; color:#10b981; background:none; border-radius:10px; font-weight:700; cursor:pointer;">Export Excel Report</button>
+                <button onclick="exportXLS()" style="margin-top:20px; width:100%; padding:12px; border:1px solid #10b981; color:#10b981; background:none; border-radius:10px; font-weight:700; cursor:pointer;">Export Excel</button>
             </div>
         </div>
     </div>
@@ -145,9 +155,9 @@
             currentUser = userDB[id];
             document.getElementById('lockScreen').style.display = 'none';
             document.getElementById('app').style.display = 'block';
-            document.getElementById('userNameDisplay').innerText = `Admin: ${currentUser.name}`;
+            document.getElementById('userNameDisplay').innerText = `User: ${currentUser.name}`;
             renderUI();
-        } else { alert("PIN Sahi Nahi Hai!"); }
+        } else { alert("Invalid PIN!"); }
     }
 
     async function pushData() {
@@ -156,20 +166,28 @@
         renderUI();
     }
 
-    // --- WHATSAPP PROTOCOL (AS REQUESTED) ---
-    function sendWA(ph, name, asset, sn, type) {
-        if(!ph) return;
-        let cleanPhone = ph.toString().trim();
-        if(cleanPhone.startsWith('0')) cleanPhone = '92' + cleanPhone.substring(1);
-        
-        let msg = `Salam *${name}*!%0A%0A` +
-                  `QistBazaar Asset Alert: *${asset}*%0A` +
-                  `Serial/IMEI: *${sn}*%0A` +
-                  `Status: *${type === 'issue' ? 'ASSIGNED' : 'RETURNED'}*%0A%0A` +
-                  `_System Generated Record_`;
+    function addNewUser() {
+        const id = document.getElementById('newUserId').value.toLowerCase().trim();
+        const pin = document.getElementById('newUserPin').value.trim();
+        const role = document.getElementById('newUserRole').value;
 
-        window.location.href = `whatsapp://send?phone=${cleanPhone}&text=${msg}`;
+        if (id && pin) {
+            if (userDB[id]) return alert("User already exists!");
+            userDB[id] = { pin: pin, role: role, name: id.charAt(0).toUpperCase() + id.slice(1) };
+            document.getElementById('newUserId').value = '';
+            document.getElementById('newUserPin').value = '';
+            pushData();
+        } else { alert("Fill all fields!"); }
     }
+
+    function triggerWA(ph, msg) {
+        if(!ph) return;
+        document.getElementById('waMsgPreview').innerText = msg;
+        document.getElementById('waFinalBtn').href = `https://wa.me/${ph}?text=${encodeURIComponent(msg)}`;
+        document.getElementById('waModal').style.display = 'flex';
+    }
+
+    function closeWa() { document.getElementById('waModal').style.display = 'none'; }
 
     function handleIssue() {
         const i = document.getElementById('pickAsset').value;
@@ -177,14 +195,8 @@
         const ph = document.getElementById('empPh').value;
         if(i!=="" && n) {
             stock[i].status = 'Issued';
-            const logEntry = { 
-                sn: stock[i].serial, make: stock[i].make, model: stock[i].model, 
-                name: n, dept: document.getElementById('empDept').value, 
-                cnic: document.getElementById('empCNIC').value, ph: ph, 
-                date: new Date().toLocaleDateString('en-GB'), status: 'Assigned', by: currentUser.name 
-            };
-            logs.unshift(logEntry);
-            sendWA(ph, n, `${stock[i].make} ${stock[i].model}`, stock[i].serial, 'issue');
+            logs.unshift({ sn: stock[i].serial, make: stock[i].make, model: stock[i].model, name: n, dept: document.getElementById('empDept').value, cnic: document.getElementById('empCNIC').value, ph: ph, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned', by: currentUser.name });
+            triggerWA(ph, `Salaam ${n}, QistBazaar ERP: ${stock[i].make} ${stock[i].model} (SN: ${stock[i].serial}) assigned to you.`);
             pushData();
         }
     }
@@ -193,19 +205,15 @@
         const l = logs[idx], i = stock.findIndex(s=>s.serial===l.sn);
         if(i!==-1){
             stock[i].status='Available'; l.status='Returned';
-            sendWA(l.ph, l.name, `${l.make} ${l.model}`, l.sn, 'return');
+            triggerWA(l.ph, `Salaam ${l.name}, your return of ${l.make} (SN: ${l.sn}) received. Record CLEAR.`);
             pushData();
         }
     }
 
     function handleAdd() {
         const make = document.getElementById('addMake').value.trim(), sn = document.getElementById('addSn').value.trim();
-        if(stock.some(s => s.serial === sn)) return alert("🚫 Duplicate IMEI Blocked!");
-        if(make && sn) { 
-            stock.push({ make: make, model: document.getElementById('addModel').value.trim(), serial: sn, status: 'Available' }); 
-            document.getElementById('addMake').value=''; document.getElementById('addSn').value='';
-            pushData(); 
-        }
+        if(stock.some(s => s.serial === sn)) return alert("🚫 Duplicate Serial Blocked!");
+        if(make && sn) { stock.push({ make: make, model: document.getElementById('addModel').value.trim(), serial: sn, status: 'Available' }); pushData(); }
     }
 
     function renderUI() {
@@ -221,29 +229,26 @@
 
         const aB = document.getElementById('activeBody'); aB.innerHTML = '';
         logs.forEach((l, i) => { if(l.status === 'Assigned' && (l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q))) {
-            aB.innerHTML += `<tr><td>${l.make} ${l.model}<br><small>${l.sn}</small></td><td>${l.name}</td><td>${l.date}</td><td>${isAdmin ? `<button onclick="handleReturn(${i})" style="background:#facc15;border:none;padding:5px;cursor:pointer;border-radius:4px;font-weight:bold;">RET</button>` : '🔒'}</td></tr>`;
+            aB.innerHTML += `<tr><td>${l.make} ${l.model}<br><small>${l.sn}</small></td><td>${l.name}</td><td>${l.date}</td><td>${isAdmin ? `<button onclick="handleReturn(${i})" style="background:#facc15;border:none;padding:5px;cursor:pointer">RET</button>` : '🔒'}</td></tr>`;
         }});
 
         const sB = document.getElementById('storeBody'); sB.innerHTML = '';
-        stock.forEach((s, i) => { if(s.serial.toLowerCase().includes(q) || s.make.toLowerCase().includes(q)) {
-            sB.innerHTML += `<tr><td>${s.make}</td><td>${s.model}</td><td>${s.serial}</td><td><span class="status-badge ${s.status === 'Available' ? 'available' : 'issued'}">${s.status}</span></td><td>${isSuper ? `<button class="del-btn" onclick="stock.splice(${i},1);pushData()">DELETE</button>` : ''}</td></tr>`;
+        stock.forEach((s, i) => { if(s.serial.toLowerCase().includes(q)) {
+            sB.innerHTML += `<tr><td>${s.make}</td><td>${s.model}</td><td>${s.serial}</td><td><span class="status-badge ${s.status === 'Available' ? 'available' : 'issued'}">${s.status}</span></td><td>${isSuper ? `<button class="del-btn" onclick="stock.splice(${i},1);pushData()">🗑️</button>` : ''}</td></tr>`;
         }});
+
+        const uB = document.getElementById('userListBody'); uB.innerHTML = '';
+        Object.keys(userDB).forEach(key => {
+            uB.innerHTML += `<tr><td>${key}</td><td>${userDB[key].role}</td><td>${userDB[key].role!=='super'?`<button class="del-btn" onclick="delete userDB['${key}'];pushData()">Remove</button>`:'ROOT'}</td></tr>`;
+        });
 
         const hB = document.getElementById('historyBody'); hB.innerHTML = '';
         logs.forEach((l, i) => { if(l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q)) {
-            hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.make} ${l.model}<br><small>${l.sn}</small></td><td>${l.cnic || '-'}</td><td>${l.by}</td><td>${l.status} ${isSuper ? `<button class="del-btn" onclick="logs.splice(${i},1);pushData()">🗑️</button>` : ''}</td></tr>`;
+            hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.make}<br><small>${l.sn}</small></td><td>${l.cnic || '-'}</td><td>${l.by}</td><td>${l.status} ${isSuper ? `<button class="del-btn" onclick="logs.splice(${i},1);pushData()">🗑️</button>` : ''}</td></tr>`;
         }});
 
-        const uList = document.getElementById('userListBody'); if(uList) {
-            uList.innerHTML = '';
-            for(let id in userDB) {
-                let rem = (id === 'hammad') ? 'ROOT' : `<button onclick="delete userDB['${id}'];pushData()" style="color:red;border:none;background:none;cursor:pointer">Remove</button>`;
-                uList.innerHTML += `<tr><td>${id}</td><td>${userDB[id].role}</td><td>${rem}</td></tr>`;
-            }
-        }
-
         const cin = stock.filter(x => x.status==='Available').length, cout = stock.filter(x => x.status==='Issued').length;
-        document.getElementById('statsBox').innerHTML = `In Warehouse: <b>${cin}</b> | Out with Staff: <b>${cout}</b>`;
+        document.getElementById('statsBox').innerHTML = `Store: <b>${cin}</b> | Staff: <b>${cout}</b>`;
         if(myChart) myChart.destroy();
         myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { datasets:[{data:[cin,cout],backgroundColor:['#10b981','#e11d48']}]}});
     }
@@ -252,11 +257,12 @@
         document.getElementById('viewIssue').style.display = p==='issue'?'block':'none';
         document.getElementById('viewWarehouse').style.display = p==='warehouse'?'block':'none';
         document.getElementById('viewAdmin').style.display = p==='admin'?'block':'none';
-        document.getElementById('t1').classList.toggle('active', p==='issue');
-        document.getElementById('t2').classList.toggle('active', p==='warehouse');
-        document.getElementById('tAdmin').classList.toggle('active', p==='admin');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        if(p==='issue') document.getElementById('t1').classList.add('active');
+        if(p==='warehouse') document.getElementById('t2').classList.add('active');
+        if(p==='admin') document.getElementById('tAdmin').classList.add('active');
     }
-    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Report"), "QistBazaar_ERP.xlsx"); }
+    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Log"), "QB_Report.xlsx"); }
 </script>
 </body>
 </html>
