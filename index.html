@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>QistBazaar ERP V32.0 - Admin Control</title>
+    <title>QistBazaar ERP V32.1 - Master Control</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -23,8 +23,9 @@
         th { background: #f8fafc; text-align: left; padding: 12px; font-size: 11px; color: var(--qb-blue); border-bottom: 2px solid #edf2f7; text-transform: uppercase; }
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
         .admin-only { display: none; }
-        .btn-wa { background:#22c55e; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-right:5px;}
+        .btn-wa { background:#22c55e; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-right:5px; font-weight: bold; }
         .btn-del { color: #ef4444; border: 1px solid #fee2e2; background: #fff5f5; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: bold; }
+        .user-tag { font-size: 10px; color: #64748b; background: #f1f5f9; padding: 2px 5px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -32,38 +33,41 @@
     <div id="lockScreen">
         <div class="login-card">
             <div class="logo" style="margin-bottom:20px;">Qist<span>Bazaar</span></div>
-            <input type="text" id="userInput" placeholder="Username" style="text-align:center;">
-            <input type="password" id="pinInput" placeholder="PIN" style="text-align:center;">
-            <button onclick="checkLogin()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:100%; cursor:pointer; font-weight:bold;">Login</button>
-            <p id="loginError" style="color:red; font-size:12px; margin-top:10px; display:none;">Invalid Credentials!</p>
+            <input type="text" id="userInput" placeholder="Username (e.g. hammad)" style="text-align:center;">
+            <input type="password" id="pinInput" placeholder="Enter PIN" style="text-align:center;">
+            <button onclick="checkLogin()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:100%; cursor:pointer; font-weight:bold; margin-top:10px;">Login to ERP</button>
+            <p id="loginError" style="color:red; font-size:12px; margin-top:10px; display:none;">Invalid ID or PIN!</p>
         </div>
     </div>
 
     <div id="app" style="display:none">
         <div class="navbar">
-            <div class="logo">Qist<span>Bazaar</span> <span id="userBadge" style="font-size:12px; background:#dcfce7; padding:4px 10px; border-radius:15px;"></span></div>
-            <button onclick="location.reload()" style="background:#64748b; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">Logout</button>
+            <div class="logo">Qist<span>Bazaar</span> <span id="userBadge" style="font-size: 12px; background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 15px; margin-left: 10px;"></span></div>
+            <div>
+                <button onclick="exportXLS()" style="background:#10b981; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">Export Report</button>
+                <button onclick="location.reload()" style="background:#64748b; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold; margin-left:5px;">Logout</button>
+            </div>
         </div>
 
         <div class="tabs">
             <button id="tab1" class="tab-btn active" onclick="nav('issue')">Issue Asset</button>
-            <button id="tab2" class="tab-btn" onclick="nav('warehouse')">Warehouse</button>
-            <button id="tabAdmin" class="tab-btn admin-only" onclick="nav('admin')">User Management ⚙️</button>
+            <button id="tab2" class="tab-btn" onclick="nav('warehouse')">Warehouse Management</button>
+            <button id="tabAdmin" class="tab-btn admin-only" onclick="nav('admin')">User Control ⚙️</button>
         </div>
 
         <div class="main-grid">
             <div class="card">
                 <div id="viewIssue">
                     <div class="admin-only">
-                        <h3>Register Issuance</h3>
-                        <select id="pickAsset"></select>
+                        <h3>Register Asset Issuance</h3>
+                        <select id="pickAsset" style="border: 2px solid var(--qb-blue);"></select>
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                            <input type="text" id="empName" placeholder="Staff Name">
-                            <input type="text" id="empPhone" placeholder="WhatsApp Number">
+                            <input type="text" id="empName" placeholder="Employee Name">
+                            <input type="text" id="empPhone" placeholder="WhatsApp Number (03xx)">
                         </div>
                         <button onclick="handleIssue()" style="background:var(--qb-red); color:white; border:none; padding:15px; border-radius:8px; width:100%; cursor:pointer; font-weight:bold;">Confirm Issuance ✅</button>
                     </div>
-                    <h3>Active Assets</h3>
+                    <h3 style="margin-top:30px;">Active Handovers</h3>
                     <table>
                         <thead><tr><th>Asset</th><th>Staff</th><th>Date</th><th>Action</th></tr></thead>
                         <tbody id="activeBody"></tbody>
@@ -72,38 +76,48 @@
 
                 <div id="viewWarehouse" style="display:none">
                     <div class="admin-only">
-                        <h3>Add Stock</h3>
-                        <input type="text" id="addMk" placeholder="Make/Model">
-                        <input type="text" id="addSn" placeholder="Serial">
-                        <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; padding:10px; border-radius:8px; width:100%;">Add</button>
+                        <h3>Stock In-Take</h3>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                            <input type="text" id="addMk" placeholder="Make/Model">
+                            <input type="text" id="addSn" placeholder="Serial/IMEI">
+                        </div>
+                        <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; padding:10px; border-radius:8px; width:100%;">+ Add to Stock</button>
                     </div>
+                    <h3 style="margin-top:30px;">Inventory List</h3>
                     <table>
-                        <thead><tr><th>Asset</th><th>Serial</th><th class="admin-only">DEL</th></tr></thead>
+                        <thead><tr><th>Asset</th><th>Serial</th><th class="admin-only">Action</th></tr></thead>
                         <tbody id="storeBody"></tbody>
+                    </table>
+                    <h3 style="margin-top:40px;">Activity Audit Log</h3>
+                    <table>
+                        <thead><tr><th>Date</th><th>Staff</th><th>Asset</th><th>Action By</th><th>Status</th></tr></thead>
+                        <tbody id="historyBody"></tbody>
                     </table>
                 </div>
 
                 <div id="viewAdmin" style="display:none">
-                    <h3>Create New User</h3>
-                    <input type="text" id="newUserId" placeholder="New Username (laraib, maryam)">
-                    <input type="text" id="newUserPin" placeholder="Set PIN">
-                    <select id="newUserRole">
-                        <option value="viewer">Viewer (Read Only)</option>
-                        <option value="admin">Admin (Full Control)</option>
-                    </select>
-                    <button onclick="addNewUser()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:100%;">Create User</button>
+                    <h3>Create New Employee Access</h3>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                        <input type="text" id="newUserId" placeholder="Username">
+                        <input type="text" id="newUserPin" placeholder="PIN">
+                        <select id="newUserRole">
+                            <option value="viewer">Viewer (Read Only)</option>
+                            <option value="admin">Admin (Full Access)</option>
+                        </select>
+                    </div>
+                    <button onclick="addNewUser()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:100%;">Create Account</button>
                     
-                    <h3 style="margin-top:20px;">Current Users</h3>
-                    <table id="userTable">
-                        <thead><tr><th>User</th><th>Role</th><th>PIN</th><th>Action</th></tr></thead>
+                    <h3 style="margin-top:30px;">System Users</h3>
+                    <table>
+                        <thead><tr><th>Username</th><th>Role</th><th>PIN</th><th>Action</th></tr></thead>
                         <tbody id="userListBody"></tbody>
                     </table>
                 </div>
             </div>
 
-            <div class="card">
+            <div class="card" style="text-align:center;">
                 <canvas id="chart"></canvas>
-                <div id="statsBox" style="margin-top:20px;"></div>
+                <div id="statsBox" style="text-align:left; margin-top:25px; line-height:2;"></div>
             </div>
         </div>
     </div>
@@ -113,16 +127,32 @@
     const BIN_ID = "69946ddd43b1c97be985ee40";
     const URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
-    // INITIAL ADMIN (Hammad cannot be deleted)
     let userDB = { "hammad": { pin: "0000", role: "admin", name: "Hammad" } };
     let stock = [], logs = [], currentUser = null, myChart;
 
-    async function pullData() {
-        const res = await fetch(`${URL}/latest`, { headers: { "X-Master-Key": API_KEY, "X-Bin-Meta": "false" }});
-        const data = await res.json();
-        stock = data.stock || []; logs = data.logs || [];
-        if(data.userDB) userDB = data.userDB;
-        renderUI();
+    // LOGIN LOGIC
+    async function checkLogin() {
+        const id = document.getElementById('userInput').value.toLowerCase();
+        const pin = document.getElementById('pinInput').value;
+
+        // Force pull latest users before checking
+        try {
+            const res = await fetch(`${URL}/latest`, { headers: { "X-Master-Key": API_KEY, "X-Bin-Meta": "false" }});
+            const data = await res.json();
+            if(data.userDB) userDB = data.userDB;
+            stock = data.stock || [];
+            logs = data.logs || [];
+        } catch(e) { console.log("Sync delay"); }
+
+        if((id === "hammad" && pin === "0000") || (userDB[id] && userDB[id].pin === pin)) {
+            currentUser = userDB[id] || { pin: "0000", role: "admin", name: "Hammad" };
+            document.getElementById('lockScreen').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            document.getElementById('userBadge').innerText = currentUser.name;
+            renderUI();
+        } else {
+            document.getElementById('loginError').style.display = 'block';
+        }
     }
 
     async function pushData() {
@@ -133,19 +163,47 @@
         renderUI();
     }
 
-    function checkLogin() {
-        const id = document.getElementById('userInput').value.toLowerCase();
-        const pin = document.getElementById('pinInput').value;
-        pullData().then(() => {
-            if(userDB[id] && userDB[id].pin === pin) {
-                currentUser = userDB[id];
-                document.getElementById('lockScreen').style.display = 'none';
-                document.getElementById('app').style.display = 'block';
-                document.getElementById('userBadge').innerText = currentUser.name;
-                if(currentUser.role === 'admin') document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
-                renderUI();
-            } else { document.getElementById('loginError').style.display = 'block'; }
-        });
+    function nav(p) {
+        document.getElementById('viewIssue').style.display = p==='issue'?'block':'none';
+        document.getElementById('viewWarehouse').style.display = p==='warehouse'?'block':'none';
+        document.getElementById('viewAdmin').style.display = p==='admin'?'block':'none';
+        document.getElementById('tab1').className = p==='issue'?'tab-btn active':'tab-btn';
+        document.getElementById('tab2').className = p==='warehouse'?'tab-btn active':'tab-btn';
+        document.getElementById('tabAdmin').className = p==='admin'?'tab-btn active':'tab-btn';
+    }
+
+    function handleAdd() {
+        const mk = document.getElementById('addMk').value, sn = document.getElementById('addSn').value;
+        if(mk && sn) {
+            stock.push({ make: mk, serial: sn, status: 'Available' });
+            pushData();
+            document.getElementById('addMk').value=''; document.getElementById('addSn').value='';
+        }
+    }
+
+    function handleIssue() {
+        const i = document.getElementById('pickAsset').value, n = document.getElementById('empName').value, p = document.getElementById('empPhone').value;
+        if(i!=="" && n) {
+            stock[i].status = 'Issued';
+            logs.unshift({ make: stock[i].make, sn: stock[i].serial, name: n, ph: p, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned', by: currentUser.name });
+            pushData();
+            document.getElementById('empName').value=''; document.getElementById('empPhone').value='';
+        }
+    }
+
+    function handleReturn(idx) {
+        const log = logs[idx]; const i = stock.findIndex(s => s.serial === log.sn);
+        if(i !== -1) { 
+            stock[i].status = 'Available'; 
+            log.status = 'Returned'; 
+            pushData(); 
+        }
+    }
+
+    function sendWA(idx) {
+        const l = logs[idx]; let p = l.ph.trim();
+        let cleanP = p.startsWith('0') ? '92' + p.substring(1) : (p.startsWith('92') ? p : '92' + p);
+        window.location.href = `whatsapp://send?phone=${cleanP}&text=Salam *${l.name}*! Asset *${l.make}* (${l.sn}) has been issued to you.`;
     }
 
     function addNewUser() {
@@ -160,74 +218,58 @@
     }
 
     function deleteUser(id) {
-        if(id === 'hammad') return alert("Cannot delete main admin!");
-        delete userDB[id]; pushData();
+        if(id === 'hammad') return alert("Master Admin cannot be deleted!");
+        if(confirm("Delete this user?")) { delete userDB[id]; pushData(); }
     }
 
-    function nav(p) {
-        document.getElementById('viewIssue').style.display = p==='issue'?'block':'none';
-        document.getElementById('viewWarehouse').style.display = p==='warehouse'?'block':'none';
-        document.getElementById('viewAdmin').style.display = p==='admin'?'block':'none';
-    }
-
-    function handleIssue() {
-        const i = document.getElementById('pickAsset').value, n = document.getElementById('empName').value, p = document.getElementById('empPhone').value;
-        if(i!=="" && n) {
-            stock[i].status = 'Issued';
-            logs.unshift({ make: stock[i].make, sn: stock[i].serial, name: n, ph: p, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned', by: currentUser.name });
-            pushData();
-        }
-    }
-
-    function sendWA(idx) {
-        const l = logs[idx]; let p = l.ph.trim();
-        let cleanP = p.startsWith('0') ? '92' + p.substring(1) : p;
-        window.location.href = `whatsapp://send?phone=${cleanP}&text=Asset ${l.make} (${l.sn}) issued to ${l.name}.`;
-    }
-
-    function handleReturn(idx) {
-        const log = logs[idx]; const i = stock.findIndex(s => s.serial === log.sn);
-        if(i !== -1) { stock[i].status = 'Available'; log.status = 'Returned'; pushData(); }
-    }
-
-    function handleAdd() {
-        const mk = document.getElementById('addMk').value, sn = document.getElementById('addSn').value;
-        if(mk && sn) { stock.push({ make: mk, serial: sn, status: 'Available' }); pushData(); }
-    }
+    function deleteStock(i) { if(confirm("Delete item?")) { stock.splice(i,1); pushData(); } }
 
     function renderUI() {
+        const isAdmin = currentUser.role === 'admin';
+        document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'block' : 'none');
+
         const sel = document.getElementById('pickAsset');
-        if(sel) {
-            sel.innerHTML = '<option value="">-- Select --</option>';
-            stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.make}</option>`; });
-        }
+        sel.innerHTML = '<option value="">-- Select Asset From Warehouse --</option>';
+        stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.make} (${s.serial})</option>`; });
 
         const aB = document.getElementById('activeBody'); aB.innerHTML = '';
         logs.forEach((l, i) => {
             if(l.status === 'Assigned') {
-                let wa = currentUser.role === 'admin' ? `<button class="btn-wa" onclick="sendWA(${i})">WA</button>` : '';
-                let ret = currentUser.role === 'admin' ? `<button onclick="handleReturn(${i})">RET</button>` : 'View';
-                aB.innerHTML += `<tr><td>${l.make}</td><td>${l.name}</td><td>${l.date}</td><td>${wa}${ret}</td></tr>`;
+                let wa = isAdmin ? `<button class="btn-wa" onclick="sendWA(${i})">WA</button>` : '';
+                let ret = isAdmin ? `<button onclick="handleReturn(${i})" style="cursor:pointer; padding:5px; border-radius:4px; border:none; background:#facc15;">RET</button>` : '<span class="user-tag">Read-Only</span>';
+                aB.innerHTML += `<tr><td><b>${l.make}</b><br><small>${l.sn}</small></td><td>${l.name}</td><td>${l.date}</td><td>${wa}${ret}</td></tr>`;
             }
         });
 
         const sB = document.getElementById('storeBody'); sB.innerHTML = '';
-        stock.forEach((s, i) => { if(s.status === 'Available') sB.innerHTML += `<tr><td>${s.make}</td><td>${s.serial}</td><td class="admin-only"><button class="btn-del" onclick="deleteStock(${i})">X</button></td></tr>`; });
+        stock.forEach((s, i) => { 
+            if(s.status === 'Available') {
+                let del = isAdmin ? `<td><button class="btn-del" onclick="deleteStock(${i})">DEL</button></td>` : '';
+                sB.innerHTML += `<tr><td>${s.make}</td><td>${s.serial}</td>${del}</tr>`; 
+            }
+        });
+
+        const hB = document.getElementById('historyBody'); hB.innerHTML = '';
+        logs.forEach((l) => {
+            hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.make}</td><td><span class="user-tag">${l.by || 'Admin'}</span></td><td>${l.status}</td></tr>`;
+        });
 
         const uB = document.getElementById('userListBody'); uB.innerHTML = '';
         for(let id in userDB) {
-            uB.innerHTML += `<tr><td>${id}</td><td>${userDB[id].role}</td><td>${userDB[id].pin}</td><td><button class="btn-del" onclick="deleteUser('${id}')">DEL</button></td></tr>`;
+            uB.innerHTML += `<tr><td>${id}</td><td>${userDB[id].role}</td><td>${userDB[id].pin}</td><td><button class="btn-del" onclick="deleteUser('${id}')">REMOVE</button></td></tr>`;
         }
 
         const cin = stock.filter(x => x.status==='Available').length, cout = stock.filter(x => x.status==='Issued').length;
+        document.getElementById('statsBox').innerHTML = `Store: <b>${cin}</b> | Staff: <b>${cout}</b> | Total: <b>${stock.length}</b>`;
         if(myChart) myChart.destroy();
-        myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { datasets:[{data:[cin,cout],backgroundColor:['#10b981','#ef4444']}]}});
-        document.querySelectorAll('.admin-only').forEach(el => el.style.display = currentUser.role === 'admin' ? 'block' : 'none');
+        myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { labels:['Store','Staff'], datasets:[{data:[cin,cout],backgroundColor:['#10b981','#ef4444'],borderWidth:0}]}, options:{cutout:'80%',plugins:{legend:{display:false}}}});
+        if(isAdmin) document.querySelectorAll('.admin-only').forEach(el => el.style.display = (el.tagName === 'TH' || el.tagName === 'TD') ? 'table-cell' : 'block');
     }
 
-    function deleteStock(i) { stock.splice(i,1); pushData(); }
-    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Report"), "QB.xlsx"); }
-    setInterval(pullData, 30000);
+    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Inventory"), "QB_ERP_Audit.xlsx"); }
+    
+    // Auto sync every 30 seconds
+    setInterval(() => { if(currentUser) pullData(); }, 30000);
 </script>
 </body>
 </html>
