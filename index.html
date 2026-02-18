@@ -2,10 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>QistBazaar ERP V29.0 - Usage Analytics</title>
+    <title>QistBazaar ERP V30.0 - Secure Access</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --qb-blue: #1e40af; --qb-red: #e11d48; --bg: #f3f4f6; }
@@ -27,6 +25,7 @@
         .btn-del { color: #ef4444; border: 1px solid #fee2e2; background: #fff5f5; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: bold; }
         .search-box { background: #fff; border: 2px solid var(--qb-blue); margin-bottom: 15px; padding-left: 35px; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="blue" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>'); background-repeat: no-repeat; background-position: 10px center; }
         .badge-days { background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        .admin-only { display: none; } /* Control for View-Only */
     </style>
 </head>
 <body onload="initSecurity()">
@@ -34,17 +33,18 @@
     <div id="lockScreen">
         <div class="login-card">
             <div class="logo">Qist<span>Bazaar</span></div>
-            <p>Security PIN Required</p>
+            <p>Enter Access PIN</p>
             <input type="password" id="pinInput" maxlength="4" style="text-align:center; font-size:30px; letter-spacing:10px;" onkeyup="checkAccess(this.value)">
+            <p style="font-size: 10px; color: #999; margin-top: 10px;">Admin: 0000 | Guest: 1122</p>
         </div>
     </div>
 
     <div id="app" style="display:none">
         <div class="navbar">
-            <div class="logo">Qist<span>Bazaar</span> <span>LIVE V29.0</span></div>
+            <div class="logo">Qist<span>Bazaar</span> <span id="modeDisplay" style="font-size: 12px; background: #eee; padding: 2px 8px; border-radius: 10px;"></span></div>
             <div>
                 <span id="syncLabel" style="font-size: 12px; font-weight: bold; margin-right: 15px;">Connecting...</span>
-                <button onclick="exportXLS()" style="background:#10b981; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">Export Data</button>
+                <button onclick="exportXLS()" style="background:#10b981; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">Export Report</button>
             </div>
         </div>
 
@@ -56,17 +56,20 @@
         <div class="main-grid">
             <div class="card">
                 <div id="viewIssue">
-                    <h3>Register Asset Issuance</h3>
-                    <select id="pickAsset" style="border: 2px solid var(--qb-blue); height: 50px; font-weight:bold;"></select>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-                        <input type="text" id="empName" placeholder="Employee Name">
-                        <input type="text" id="empCnic" placeholder="CNIC Number">
-                        <input type="text" id="empDept" placeholder="Branch / Department">
-                        <input type="text" id="empPhone" placeholder="WhatsApp Number">
+                    <div class="admin-only">
+                        <h3>Register Asset Issuance</h3>
+                        <select id="pickAsset" style="border: 2px solid var(--qb-blue); height: 50px; font-weight:bold;"></select>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                            <input type="text" id="empName" placeholder="Employee Name">
+                            <input type="text" id="empCnic" placeholder="CNIC Number">
+                            <input type="text" id="empDept" placeholder="Branch / Department">
+                            <input type="text" id="empPhone" placeholder="WhatsApp Number">
+                        </div>
+                        <button onclick="handleIssue()" style="background:var(--qb-red); color:white; border:none; padding:15px; border-radius:8px; width:100%; cursor:pointer; font-weight:bold;">Confirm Issuance ✅</button>
+                        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
                     </div>
-                    <button onclick="handleIssue()" style="background:var(--qb-red); color:white; border:none; padding:15px; border-radius:8px; width:100%; cursor:pointer; font-weight:bold;">Confirm Issuance ✅</button>
 
-                    <h3 style="margin-top:35px;">Active Handovers</h3>
+                    <h3>Active Handovers</h3>
                     <input type="text" id="searchActive" class="search-box" placeholder="Search staff or serial..." onkeyup="renderUI()">
                     <table>
                         <thead><tr><th>Asset</th><th>Staff Detail</th><th>Branch</th><th>Date</th><th>Action</th></tr></thead>
@@ -75,25 +78,27 @@
                 </div>
 
                 <div id="viewWarehouse" style="display:none">
-                    <h3>Stock In-Take</h3>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-                        <input type="text" id="addMake" placeholder="Make">
-                        <input type="text" id="addModel" placeholder="Model">
-                        <input type="text" id="addSerial" placeholder="Serial/IMEI">
+                    <div class="admin-only">
+                        <h3>Stock In-Take</h3>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                            <input type="text" id="addMake" placeholder="Make">
+                            <input type="text" id="addModel" placeholder="Model">
+                            <input type="text" id="addSerial" placeholder="Serial/IMEI">
+                        </div>
+                        <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:150px; cursor:pointer; font-weight:bold;">+ Add Stock</button>
                     </div>
-                    <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:150px; cursor:pointer; font-weight:bold;">+ Add Stock</button>
 
                     <h3 style="margin-top:30px;">Warehouse Inventory</h3>
                     <input type="text" id="searchStore" class="search-box" placeholder="Search Warehouse..." onkeyup="renderUI()">
                     <table>
-                        <thead><tr><th>Make</th><th>Model</th><th>Serial</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Make</th><th>Model</th><th>Serial</th><th class="admin-only">Action</th></tr></thead>
                         <tbody id="storeBody"></tbody>
                     </table>
 
-                    <h3 style="margin-top:40px; border-top:2px solid #eee; padding-top:20px; color:var(--qb-red);">Master Log & Usage Duration</h3>
+                    <h3 style="margin-top:40px; border-top:2px solid #eee; padding-top:20px; color:var(--qb-red);">Master Log & Usage</h3>
                     <input type="text" id="searchHist" class="search-box" placeholder="Search records..." onkeyup="renderUI()">
                     <table>
-                        <thead><tr><th>Issued</th><th>Employee</th><th>Asset</th><th>Returned</th><th>Usage</th><th>Admin</th></tr></thead>
+                        <thead><tr><th>Issued</th><th>Employee</th><th>Asset</th><th>Returned</th><th>Usage</th><th class="admin-only">Admin</th></tr></thead>
                         <tbody id="historyBody"></tbody>
                     </table>
                 </div>
@@ -111,33 +116,40 @@
     const BIN_ID = "69946ddd43b1c97be985ee40";
     const URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
-    let stock = [], logs = [], myChart;
+    let stock = [], logs = [], myChart, isAdmin = false;
 
     function initSecurity() { if(!localStorage.getItem('QB_SEC')) localStorage.setItem('QB_SEC', '0000'); }
-    function checkAccess(val) { if(val === localStorage.getItem('QB_SEC')) { document.getElementById('lockScreen').style.display='none'; document.getElementById('app').style.display='block'; pullData(); } }
+    
+    function checkAccess(val) {
+        if(val === "0000") { isAdmin = true; startApp("ADMIN"); }
+        else if(val === "1122") { isAdmin = false; startApp("VIEWER"); }
+    }
+
+    function startApp(mode) {
+        document.getElementById('lockScreen').style.display='none';
+        document.getElementById('app').style.display='block';
+        document.getElementById('modeDisplay').innerText = mode;
+        if(isAdmin) document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+        pullData();
+    }
 
     async function pullData() {
         const label = document.getElementById('syncLabel');
         try {
             const res = await fetch(`${URL}/latest`, { headers: { "X-Master-Key": API_KEY, "X-Bin-Meta": "false" }});
             const data = await res.json();
-            const record = data.record || data;
-            stock = record.stock || [];
-            logs = record.logs || [];
+            stock = data.stock || []; logs = data.logs || [];
             label.innerText = "Live Sync Active"; label.style.color = "green";
             renderUI();
         } catch(e) { label.innerText = "Offline Mode"; label.style.color = "red"; }
     }
 
     async function pushData() {
+        if(!isAdmin) return;
         renderUI();
         try {
-            await fetch(URL, {
-                method: 'PUT',
-                headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY },
-                body: JSON.stringify({ stock, logs })
-            });
-        } catch(e) { console.log("Cloud Sync Failed"); }
+            await fetch(URL, { method: 'PUT', headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY }, body: JSON.stringify({ stock, logs }) });
+        } catch(e) { console.log("Sync Fail"); }
     }
 
     function nav(p) {
@@ -162,35 +174,21 @@
         }
     }
 
-    // UPDATED RETURN LOGIC WITH DURATION CALCULATION
     function handleReturn(idx) {
-        const log = logs[idx];
-        const itemIndex = stock.findIndex(s => s.serial === log.sn);
-        
-        if (itemIndex !== -1) {
-            stock[itemIndex].status = 'Available';
-            log.status = 'Returned';
-            const rDateStr = new Date().toLocaleDateString('en-GB');
-            log.rDate = rDateStr;
-
-            // Calculate Usage Days
-            const d1 = parseDate(log.date);
-            const d2 = new Date();
-            const diffTime = Math.abs(d2 - d1);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-            log.usage = diffDays + " Days";
-
+        if(!isAdmin) return;
+        const log = logs[idx]; const itemIdx = stock.findIndex(s => s.serial === log.sn);
+        if (itemIdx !== -1) {
+            stock[itemIdx].status = 'Available'; log.status = 'Returned';
+            const d1 = parseDate(log.date); const d2 = new Date();
+            const diffDays = Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24));
+            log.rDate = new Date().toLocaleDateString('en-GB'); log.usage = diffDays + " Days";
             pushData();
         }
     }
 
-    function parseDate(str) {
-        const parts = str.split('/');
-        return new Date(parts[2], parts[1] - 1, parts[0]);
-    }
-
-    function deleteStock(idx) { if(confirm("Delete item?")) { stock.splice(idx,1); pushData(); } }
-    function deleteLog(idx) { if(confirm("Delete history?")) { logs.splice(idx,1); pushData(); } }
+    function parseDate(str) { const p = str.split('/'); return new Date(p[2], p[1] - 1, p[0]); }
+    function deleteStock(idx) { if(isAdmin && confirm("Delete?")) { stock.splice(idx,1); pushData(); } }
+    function deleteLog(idx) { if(isAdmin && confirm("Delete?")) { logs.splice(idx,1); pushData(); } }
 
     function renderUI() {
         const qA = document.getElementById('searchActive').value.toLowerCase();
@@ -198,44 +196,48 @@
         const qH = document.getElementById('searchHist').value.toLowerCase();
 
         const sel = document.getElementById('pickAsset');
-        sel.innerHTML = '<option value="">-- Select Asset From Warehouse --</option>';
-        stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.make} ${s.model} (${s.serial})</option>`; });
+        if(sel) {
+            sel.innerHTML = '<option value="">-- Select Asset From Warehouse --</option>';
+            stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.make} ${s.model} (${s.serial})</option>`; });
+        }
 
         const sB = document.getElementById('storeBody'); sB.innerHTML = '';
         stock.forEach((s, i) => { 
             if(s.status === 'Available' && (s.make.toLowerCase().includes(qS) || s.serial.toLowerCase().includes(qS))) {
-                sB.innerHTML += `<tr><td>${s.make}</td><td>${s.model}</td><td>${s.serial}</td><td><button class="btn-del" onclick="deleteStock(${i})">DEL</button></td></tr>`; 
+                let actionTd = isAdmin ? `<td><button class="btn-del" onclick="deleteStock(${i})">DEL</button></td>` : '';
+                sB.innerHTML += `<tr><td>${s.make}</td><td>${s.model}</td><td>${s.serial}</td>${actionTd}</tr>`; 
             }
         });
 
         const aB = document.getElementById('activeBody'); aB.innerHTML = '';
         logs.forEach((l, i) => {
             if(l.status === 'Assigned' && (l.name.toLowerCase().includes(qA) || l.sn.toLowerCase().includes(qA))) {
-                aB.innerHTML += `<tr><td><b>${l.make}</b><br><small>${l.sn}</small></td><td>${l.name}<br><small>${l.cnic}</small></td><td>${l.dept}</td><td>${l.date}</td><td><button onclick="sendWA(${i})" style="background:#22c55e;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer;">WA</button> <button onclick="handleReturn(${i})" style="background:#facc15;border:none;padding:5px 8px;border-radius:4px;cursor:pointer;">RET</button></td></tr>`;
+                let btns = isAdmin ? `<button onclick="sendWA(${i})" style="background:#22c55e;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer;">WA</button> <button onclick="handleReturn(${i})" style="background:#facc15;border:none;padding:5px 8px;border-radius:4px;cursor:pointer;">RET</button>` : `<span style="color:#999">View Only</span>`;
+                aB.innerHTML += `<tr><td><b>${l.make}</b><br><small>${l.sn}</small></td><td>${l.name}</td><td>${l.dept}</td><td>${l.date}</td><td>${btns}</td></tr>`;
             }
         });
 
         const hB = document.getElementById('historyBody'); hB.innerHTML = '';
         logs.forEach((l, i) => {
             if(l.name.toLowerCase().includes(qH) || l.sn.toLowerCase().includes(qH)) {
-                hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.make}<br><small>${l.sn}</small></td><td>${l.rDate}</td><td><span class="badge-days">${l.usage}</span></td><td><button class="btn-del" onclick="deleteLog(${i})">DEL</button></td></tr>`;
+                let del = isAdmin ? `<td><button class="btn-del" onclick="deleteLog(${i})">DEL</button></td>` : '';
+                hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.make}</td><td>${l.rDate}</td><td><span class="badge-days">${l.usage}</span></td>${del}</tr>`;
             }
         });
 
         const cin = stock.filter(x => x.status==='Available').length, cout = stock.filter(x => x.status==='Issued').length;
-        document.getElementById('statsBox').innerHTML = `Warehouse Store: <b>${cin}</b><br>Out with Staff: <b><b>${cout}</b><br>Total Inventory: <b>${stock.length}</b>`;
+        document.getElementById('statsBox').innerHTML = `Store: <b>${cin}</b> | Staff: <b>${cout}</b> | Total: <b>${stock.length}</b>`;
         if(myChart) myChart.destroy();
-        myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { labels: ['Warehouse','Staff'], datasets:[{data:[cin,cout],backgroundColor:['#10b981','#ef4444'],borderWidth:0}]}, options:{cutout:'80%',plugins:{legend:{display:false}}}});
+        myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { labels: ['Store','Staff'], datasets:[{data:[cin,cout],backgroundColor:['#10b981','#ef4444'],borderWidth:0}]}, options:{cutout:'80%',plugins:{legend:{display:false}}}});
     }
 
     function sendWA(idx) {
-        const l = logs[idx];
-        let p = l.ph.toString().trim();
+        const l = logs[idx]; let p = l.ph.toString().trim();
         let cleanP = p.startsWith('0') ? '92' + p.substring(1) : (p.startsWith('92') ? p : '92' + p);
         window.location.href = `whatsapp://send?phone=${cleanP}&text=Salam *${l.name}*! Asset *${l.make} ${l.model}* (Serial: *${l.sn}*) is issued to you. Branch: *${l.dept}*.`;
     }
 
-    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Full_Inventory_Report"), "QB_ERP_V29.xlsx"); }
+    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Inventory_Report"), "QB_ERP.xlsx"); }
     setInterval(pullData, 30000);
 </script>
 </body>
