@@ -1,25 +1,211 @@
-// Is logic mein columns wapas poore kar diye hain:
-function handleIssue() {
-    const i = document.getElementById('pickAsset').value;
-    const n = document.getElementById('empName').value;
-    const c = document.getElementById('empCnic').value; // CNIC wapas aa gaya
-    const d = document.getElementById('empDept').value; // Branch wapas aa gayi
-    const p = document.getElementById('empPhone').value;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>QistBazaar ERP V32.3 - Full Columns</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --qb-blue: #1e40af; --qb-red: #e11d48; --bg: #f3f4f6; }
+        body { background: var(--bg); font-family: 'Segoe UI', sans-serif; margin: 0; }
+        #lockScreen { position: fixed; inset: 0; background: var(--qb-blue); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000; }
+        .login-card { background: white; padding: 40px; border-radius: 20px; text-align: center; width: 350px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: white; border-bottom: 2px solid #e2e8f0; }
+        .logo { font-size: 24px; font-weight: bold; color: var(--qb-blue); }
+        .logo span { color: var(--qb-red); }
+        .tabs { display: flex; padding: 20px 30px 0; gap: 10px; }
+        .tab-btn { padding: 12px 25px; border: none; border-radius: 10px 10px 0 0; cursor: pointer; font-weight: bold; background: #e2e8f0; color: #64748b; }
+        .tab-btn.active { background: white; color: var(--qb-blue); border-bottom: 3px solid var(--qb-red); }
+        .main-grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; padding: 0 30px 30px; }
+        .card { background: white; padding: 25px; border-radius: 0 15px 15px 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        input, select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background: #f8fafc; text-align: left; padding: 12px; font-size: 11px; color: var(--qb-blue); border-bottom: 2px solid #edf2f7; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        .admin-only { display: none; }
+        .btn-wa { background:#22c55e; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-right:5px; font-weight:bold; }
+        .btn-del { color: #ef4444; border: 1px solid #fee2e2; background: #fff5f5; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: bold; }
+        .user-tag { font-size: 10px; color: #64748b; background: #f1f5f9; padding: 2px 5px; border-radius: 4px; }
+    </style>
+</head>
+<body>
 
-    if(i!=="" && n) {
-        stock[i].status = 'Issued';
-        logs.unshift({ 
-            make: stock[i].make, 
-            model: stock[i].model, 
-            sn: stock[i].serial, 
-            name: n, 
-            cnic: c, 
-            dept: d, 
-            ph: p, 
-            date: new Date().toLocaleDateString('en-GB'), 
-            status: 'Assigned', 
-            by: currentUser.name 
-        });
-        pushData();
+    <div id="lockScreen">
+        <div class="login-card">
+            <div class="logo" style="margin-bottom:20px;">Qist<span>Bazaar</span></div>
+            <input type="text" id="userInput" placeholder="Username (e.g. hammad)" style="text-align:center;">
+            <input type="password" id="pinInput" placeholder="Enter PIN" style="text-align:center;">
+            <button onclick="checkLogin()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:100%; cursor:pointer; font-weight:bold; margin-top:10px;">Login</button>
+            <p id="loginError" style="color:red; font-size:12px; margin-top:10px; display:none;">Invalid ID or PIN!</p>
+        </div>
+    </div>
+
+    <div id="app" style="display:none">
+        <div class="navbar">
+            <div class="logo">Qist<span>Bazaar</span> <span id="userBadge" style="font-size: 12px; background: #dcfce7; padding: 4px 10px; border-radius: 15px; margin-left: 10px;"></span></div>
+            <button onclick="location.reload()" style="background:#64748b; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">Logout</button>
+        </div>
+
+        <div class="tabs">
+            <button id="tab1" class="tab-btn active" onclick="nav('issue')">Issue Asset</button>
+            <button id="tab2" class="tab-btn" onclick="nav('warehouse')">Warehouse</button>
+            <button id="tabAdmin" class="tab-btn admin-only" onclick="nav('admin')">User Management ⚙️</button>
+        </div>
+
+        <div class="main-grid">
+            <div class="card">
+                <div id="viewIssue">
+                    <div class="admin-only">
+                        <h3>Issuance Form</h3>
+                        <select id="pickAsset"></select>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                            <input type="text" id="empName" placeholder="Employee Name">
+                            <input type="text" id="empCnic" placeholder="CNIC Number">
+                            <input type="text" id="empDept" placeholder="Branch/Dept">
+                            <input type="text" id="empPhone" placeholder="WhatsApp Number">
+                        </div>
+                        <button onclick="handleIssue()" style="background:var(--qb-red); color:white; border:none; padding:15px; border-radius:8px; width:100%; cursor:pointer; font-weight:bold;">Confirm ✅</button>
+                    </div>
+                    <h3>Active Handovers</h3>
+                    <table>
+                        <thead><tr><th>Asset</th><th>Staff Detail</th><th>Branch</th><th>Date</th><th>Action</th></tr></thead>
+                        <tbody id="activeBody"></tbody>
+                    </table>
+                </div>
+
+                <div id="viewWarehouse" style="display:none">
+                    <div class="admin-only">
+                        <h3>Stock In</h3>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                            <input type="text" id="addMk" placeholder="Make">
+                            <input type="text" id="addMo" placeholder="Model">
+                            <input type="text" id="addSn" placeholder="Serial">
+                        </div>
+                        <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; padding:10px; border-radius:8px; width:100%;">Add Stock</button>
+                    </div>
+                    <table>
+                        <thead><tr><th>Make</th><th>Model</th><th>Serial</th><th class="admin-only">DEL</th></tr></thead>
+                        <tbody id="storeBody"></tbody>
+                    </table>
+                    <h3 style="margin-top:40px;">History (Audit)</h3>
+                    <table>
+                        <thead><tr><th>Date</th><th>Staff</th><th>Asset</th><th>Action By</th><th>Status</th></tr></thead>
+                        <tbody id="historyBody"></tbody>
+                    </table>
+                </div>
+
+                <div id="viewAdmin" style="display:none">
+                    <h3>Manage Access</h3>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                        <input type="text" id="newUserId" placeholder="Username">
+                        <input type="text" id="newUserPin" placeholder="PIN">
+                        <select id="newUserRole"><option value="viewer">Viewer</option><option value="admin">Admin</option></select>
+                    </div>
+                    <button onclick="addNewUser()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:100%;">Save User</button>
+                    <table style="margin-top:20px;">
+                        <thead><tr><th>User</th><th>Role</th><th>PIN</th><th>Action</th></tr></thead>
+                        <tbody id="userListBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <canvas id="chart"></canvas>
+                <div id="statsBox" style="margin-top:20px;"></div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const API_KEY = "$2a$10$zs0AXFgLuXZDitAlBISdl.N.tuEhmZpkUhIXK6hOM/K89PbZgVRES";
+    const BIN_ID = "69946ddd43b1c97be985ee40";
+    const URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+    let userDB = { "hammad": { pin: "0000", role: "admin", name: "Hammad" } };
+    let stock = [], logs = [], currentUser = null, myChart;
+
+    async function checkLogin() {
+        const id = document.getElementById('userInput').value.toLowerCase();
+        const pin = document.getElementById('pinInput').value;
+        try {
+            const res = await fetch(`${URL}/latest`, { headers: { "X-Master-Key": API_KEY, "X-Bin-Meta": "false" }});
+            const data = await res.json();
+            if(data.userDB) userDB = data.userDB;
+            stock = data.stock || []; logs = data.logs || [];
+        } catch(e) {}
+        if((id === "hammad" && pin === "0000") || (userDB[id] && userDB[id].pin === pin)) {
+            currentUser = userDB[id] || { pin: "0000", role: "admin", name: "Hammad" };
+            document.getElementById('lockScreen').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            document.getElementById('userBadge').innerText = currentUser.name;
+            renderUI();
+        } else { document.getElementById('loginError').style.display = 'block'; }
     }
-}
+
+    async function pushData() {
+        if(currentUser.role !== 'admin') return;
+        await fetch(URL, { method: 'PUT', headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY }, body: JSON.stringify({ stock, logs, userDB }) });
+        renderUI();
+    }
+
+    function handleIssue() {
+        const i = document.getElementById('pickAsset').value, n = document.getElementById('empName').value, c = document.getElementById('empCnic').value, d = document.getElementById('empDept').value, p = document.getElementById('empPhone').value;
+        if(i!=="" && n) {
+            stock[i].status = 'Issued';
+            logs.unshift({ make: stock[i].make, model: stock[i].model, sn: stock[i].serial, name: n, cnic: c, dept: d, ph: p, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned', by: currentUser.name });
+            pushData();
+        }
+    }
+
+    function renderUI() {
+        const isAdmin = currentUser.role === 'admin';
+        document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'block' : 'none');
+        
+        const sel = document.getElementById('pickAsset');
+        sel.innerHTML = '<option value="">-- Select Asset --</option>';
+        stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.make} ${s.model} (${s.serial})</option>`; });
+
+        const aB = document.getElementById('activeBody'); aB.innerHTML = '';
+        logs.forEach((l, i) => {
+            if(l.status === 'Assigned') {
+                let wa = isAdmin ? `<button class="btn-wa" onclick="sendWA(${i})">WA</button>` : '';
+                let ret = isAdmin ? `<button onclick="handleReturn(${i})">RET</button>` : 'View';
+                aB.innerHTML += `<tr><td>${l.make} ${l.model}<br><small>${l.sn}</small></td><td>${l.name}<br><small>${l.cnic}</small></td><td>${l.dept}</td><td>${l.date}</td><td>${wa}${ret}</td></tr>`;
+            }
+        });
+
+        const sB = document.getElementById('storeBody'); sB.innerHTML = '';
+        stock.forEach((s, i) => { if(s.status === 'Available') sB.innerHTML += `<tr><td>${s.make}</td><td>${s.model}</td><td>${s.serial}</td><td class="admin-only"><button class="btn-del" onclick="deleteStock(${i})">X</button></td></tr>`; });
+
+        const uB = document.getElementById('userListBody'); uB.innerHTML = '';
+        for(let id in userDB) uB.innerHTML += `<tr><td>${id}</td><td>${userDB[id].role}</td><td>${userDB[id].pin}</td><td><button class="btn-del" onclick="deleteUser('${id}')">DEL</button></td></tr>`;
+
+        const hB = document.getElementById('historyBody'); hB.innerHTML = '';
+        logs.forEach(l => hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}</td><td>${l.make}</td><td><span class="user-tag">${l.by || 'Admin'}</span></td><td>${l.status}</td></tr>`);
+
+        if(isAdmin) document.querySelectorAll('.admin-only').forEach(el => el.style.display = (el.tagName==='TH'||el.tagName==='TD')?'table-cell':'block');
+    }
+
+    function nav(p) {
+        document.getElementById('viewIssue').style.display = p==='issue'?'block':'none';
+        document.getElementById('viewWarehouse').style.display = p==='warehouse'?'block':'none';
+        document.getElementById('viewAdmin').style.display = p==='admin'?'block':'none';
+    }
+
+    function sendWA(idx) {
+        const l = logs[idx]; let p = l.ph.trim();
+        let cleanP = p.startsWith('0') ? '92' + p.substring(1) : p;
+        window.location.href = `whatsapp://send?phone=${cleanP}&text=Asset ${l.make} issued to ${l.name}.`;
+    }
+
+    function handleAdd() {
+        const mk = document.getElementById('addMk').value, mo = document.getElementById('addMo').value, sn = document.getElementById('addSn').value;
+        if(mk && sn) { stock.push({ make: mk, model: mo, serial: sn, status: 'Available' }); pushData(); }
+    }
+
+    function deleteStock(i) { if(confirm("DEL?")) { stock.splice(i,1); pushData(); } }
+    function deleteUser(id) { if(id!=='hammad') { delete userDB[id]; pushData(); } }
+    function handleReturn(idx) { const l = logs[idx]; const i = stock.findIndex(s=>s.serial===l.sn); if(i!==-1){stock[i].status='Available'; l.status='Returned'; pushData();}}
+</script>
+</body>
+</html>
