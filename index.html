@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>QistBazaar ERP V41.0 - Return Alerts & Super Admin</title>
+    <title>QistBazaar ERP V42.0 - All Fields + Return Alerts</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -64,6 +64,8 @@
                         <select id="pickAsset" style="border: 2px solid var(--qb-blue); font-weight:bold;"></select>
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                             <input type="text" id="empName" placeholder="Employee Name">
+                            <input type="text" id="empDept" placeholder="Department">
+                            <input type="text" id="empCNIC" placeholder="CNIC Number">
                             <input type="text" id="empPh" placeholder="WhatsApp (92300...)">
                         </div>
                         <button onclick="handleIssue()" style="background:var(--qb-red); color:white; border:none; padding:14px; border-radius:8px; width:100%; cursor:pointer; font-weight:700;">Assign Asset ✅</button>
@@ -71,7 +73,7 @@
 
                     <h3 style="margin-top:30px; color:var(--qb-blue)">Active Staff Assets</h3>
                     <table>
-                        <thead><tr><th>Asset</th><th>Employee</th><th>Date</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Asset</th><th>Employee</th><th>Dept</th><th>Date</th><th>Action</th></tr></thead>
                         <tbody id="activeBody"></tbody>
                     </table>
                 </div>
@@ -80,7 +82,7 @@
                     <div id="warehouseForm" style="display:none">
                         <h3>Add Stock</h3>
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                            <input type="text" id="addMk" placeholder="Item Name (e.g. MOBILE)">
+                            <input type="text" id="addMk" placeholder="Item Name">
                             <input type="text" id="addSn" placeholder="Serial / IMEI">
                         </div>
                         <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:100%; cursor:pointer;">+ Add Stock</button>
@@ -94,7 +96,7 @@
 
                     <h3 style="margin-top:40px; color:var(--qb-red); border-top:2px solid #f1f5f9; padding-top:20px;">Master History</h3>
                     <table>
-                        <thead><tr><th>Date</th><th>Employee</th><th>Asset</th><th>Admin</th><th>Details</th></tr></thead>
+                        <thead><tr><th>Date</th><th>Employee</th><th>Asset</th><th>CNIC</th><th>Details</th></tr></thead>
                         <tbody id="historyBody"></tbody>
                     </table>
                 </div>
@@ -160,14 +162,28 @@
     }
 
     function handleIssue() {
-        const i = document.getElementById('pickAsset').value, n = document.getElementById('empName').value, ph = document.getElementById('empPh').value;
+        const i = document.getElementById('pickAsset').value;
+        const n = document.getElementById('empName').value;
+        const d = document.getElementById('empDept').value;
+        const c = document.getElementById('empCNIC').value;
+        const ph = document.getElementById('empPh').value;
+
         if(i!=="" && n) {
             stock[i].status = 'Issued';
-            logs.unshift({ sn: stock[i].serial, make: stock[i].make, name: n, ph: ph, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned', by: currentUser.name });
+            logs.unshift({ 
+                sn: stock[i].serial, 
+                make: stock[i].make, 
+                name: n, 
+                dept: d,
+                cnic: c,
+                ph: ph, 
+                date: new Date().toLocaleDateString('en-GB'), 
+                status: 'Assigned', 
+                by: currentUser.name 
+            });
             
-            // Auto WhatsApp on Issuance
             if(ph) {
-                const msg = `Salaam ${n}, QistBazaar ERP notification: ${stock[i].make} (SN: ${stock[i].serial}) has been assigned to you. Date: ${new Date().toLocaleDateString('en-GB')}.`;
+                const msg = `Salaam ${n}, QistBazaar ERP: ${stock[i].make} (SN: ${stock[i].serial}) has been assigned to you. Date: ${new Date().toLocaleDateString('en-GB')}.`;
                 window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`, '_blank');
             }
             pushData();
@@ -178,10 +194,8 @@
         const l = logs[idx]; const i = stock.findIndex(s=>s.serial===l.sn);
         if(i!==-1){
             stock[i].status='Available'; l.status='Returned';
-            
-            // Auto WhatsApp on Return Alert
             if(l.ph) {
-                const msg = `Salaam ${l.name}, your return of ${l.make} (SN: ${l.sn}) has been received and your record is now CLEAR. Thank you!`;
+                const msg = `Salaam ${l.name}, your return of ${l.make} (SN: ${l.sn}) has been received. Your record is now CLEAR.`;
                 window.open(`https://wa.me/${l.ph}?text=${encodeURIComponent(msg)}`, '_blank');
             }
             pushData();
@@ -198,7 +212,7 @@
         document.getElementById('warehouseForm').style.display = isAdmin ? 'block' : 'none';
 
         const sel = document.getElementById('pickAsset');
-        sel.innerHTML = '<option value="">-- Choose --</option>';
+        sel.innerHTML = '<option value="">-- Choose Item --</option>';
         stock.forEach((s, i) => { if(s.status === 'Available') sel.innerHTML += `<option value="${i}">${s.make} (${s.serial})</option>`; });
 
         const aB = document.getElementById('activeBody'); aB.innerHTML = '';
@@ -206,7 +220,7 @@
             if(l.status === 'Assigned' && (l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q))) {
                 let wa = l.ph ? `<a href="https://wa.me/${l.ph}" target="_blank" class="wa-btn">💬</a>` : '';
                 let act = isAdmin ? `<button onclick="handleReturn(${i})" style="background:#facc15; border:none; padding:6px; border-radius:4px; font-weight:bold; cursor:pointer;">RET</button>` : '🔒';
-                aB.innerHTML += `<tr><td>${l.make}<br><small>${l.sn}</small></td><td>${l.name}${wa}</td><td>${l.date}</td><td>${act}</td></tr>`;
+                aB.innerHTML += `<tr><td>${l.make}<br><small>${l.sn}</small></td><td>${l.name}${wa}</td><td>${l.dept || '-'}</td><td>${l.date}</td><td>${act}</td></tr>`;
             }
         });
 
@@ -224,7 +238,7 @@
             if(l.name.toLowerCase().includes(q) || l.sn.toLowerCase().includes(q)) {
                 let del = isSuper ? `<button class="del-btn" onclick="logs.splice(${i},1);pushData()">🗑️</button>` : '';
                 let wa = l.ph ? `<a href="https://wa.me/${l.ph}" target="_blank" class="wa-btn">💬</a>` : '';
-                hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}${wa}</td><td>${l.make}<br><small>${l.sn}</small></td><td>${l.by}</td><td><span class="status-badge issued">${l.status}</span> ${del}</td></tr>`;
+                hB.innerHTML += `<tr><td>${l.date}</td><td>${l.name}${wa}</td><td>${l.make}<br><small>${l.sn}</small></td><td>${l.cnic || '-'}</td><td><span class="status-badge issued">${l.status}</span> ${del}</td></tr>`;
             }
         });
 
@@ -237,7 +251,7 @@
         }
 
         const cin = stock.filter(x => x.status==='Available').length, cout = stock.filter(x => x.status==='Issued').length;
-        document.getElementById('statsBox').innerHTML = `Warehouse: <b>${cin}</b> | Issued: <b>${cout}</b>`;
+        document.getElementById('statsBox').innerHTML = `Store: <b>${cin}</b> | Staff: <b>${cout}</b>`;
         if(myChart) myChart.destroy();
         myChart = new Chart(document.getElementById('chart'), { type: 'doughnut', data: { labels:['In','Out'], datasets:[{data:[cin,cout],backgroundColor:['#10b981','#e11d48'],borderWidth:0}]}, options:{cutout:'80%',plugins:{legend:{display:false}}}});
     }
@@ -253,7 +267,7 @@
 
     function handleAdd() {
         const mk = document.getElementById('addMk').value, sn = document.getElementById('addSn').value.trim();
-        if(stock.some(s => s.serial === sn)) return alert("Duplicate Serial Blocked! Ye device pehle se warehouse mein hai.");
+        if(stock.some(s => s.serial === sn)) return alert("Duplicate Serial Blocked!");
         if(mk && sn) { stock.push({ make: mk, serial: sn, status: 'Available' }); pushData(); }
     }
 
@@ -262,7 +276,7 @@
         if(u && p) { userDB[u] = { pin: p, role: r, name: u }; await pushData(); }
     }
     
-    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "ERP_Log"), "QistBazaar_Assets.xlsx"); }
+    function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Report"), "QB_Asset_Log.xlsx"); }
 </script>
 </body>
 </html>
