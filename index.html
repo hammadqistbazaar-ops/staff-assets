@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>QistBazaar ERP V45.0 - WA Fix</title>
+    <title>QistBazaar ERP V45.0 - Direct WA Fix</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -23,7 +23,6 @@
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th { background: #f8fafc; text-align: left; padding: 12px; font-size: 11px; color: var(--qb-blue); border-bottom: 2px solid #edf2f7; text-transform: uppercase; }
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-        .wa-btn { color: #25d366; text-decoration: none; font-size: 18px; margin-left: 5px; cursor: pointer; }
         .del-btn { color: var(--qb-red); border: 1px solid var(--qb-red); background: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; }
         .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
         .available { background: #dcfce7; color: #166534; }
@@ -81,8 +80,8 @@
                     <div id="warehouseForm" style="display:none">
                         <h3>Add New Stock</h3>
                         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-                            <input type="text" id="addMake" placeholder="Make (e.g. Infinix)">
-                            <input type="text" id="addModel" placeholder="Model (e.g. Note 30)">
+                            <input type="text" id="addMake" placeholder="Make">
+                            <input type="text" id="addModel" placeholder="Model">
                             <input type="text" id="addSn" placeholder="IMEI / Serial">
                         </div>
                         <button onclick="handleAdd()" style="background:var(--qb-blue); color:white; border:none; padding:12px; border-radius:8px; width:100%; cursor:pointer; font-weight:700;">+ Secure Add Stock</button>
@@ -156,10 +155,12 @@
         renderUI();
     }
 
-    // Direct WhatsApp Logic
+    // --- OLD WHATSAPP LOGIC FROM V19.5 (NO MODAL) ---
     function triggerWA(ph, msg) {
         if(!ph) return;
-        window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`, '_blank');
+        let phone = ph.toString().trim();
+        let cleanPhone = phone.startsWith('0') ? '92' + phone.substring(1) : phone;
+        window.location.href = `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
     }
 
     function addNewUser() {
@@ -182,7 +183,7 @@
         if(i!=="" && n) {
             stock[i].status = 'Issued';
             logs.unshift({ sn: stock[i].serial, make: stock[i].make, model: stock[i].model, name: n, dept: document.getElementById('empDept').value, cnic: document.getElementById('empCNIC').value, ph: ph, date: new Date().toLocaleDateString('en-GB'), status: 'Assigned', by: currentUser.name });
-            triggerWA(ph, `Salaam ${n}, QistBazaar ERP: ${stock[i].make} ${stock[i].model} (SN: ${stock[i].serial}) assigned to you.`);
+            triggerWA(ph, `Salam *${n}*! QistBazaar ERP: *${stock[i].make} ${stock[i].model}* (SN: *${stock[i].serial}*) assigned to you.`);
             pushData();
         }
     }
@@ -191,14 +192,14 @@
         const l = logs[idx], i = stock.findIndex(s=>s.serial===l.sn);
         if(i!==-1){
             stock[i].status='Available'; l.status='Returned';
-            triggerWA(l.ph, `Salaam ${l.name}, your return of ${l.make} (SN: ${l.sn}) received. Record CLEAR.`);
+            triggerWA(l.ph, `Salam *${l.name}*, your return of *${l.make}* (SN: *${l.sn}*) received. Record CLEAR.`);
             pushData();
         }
     }
 
     function handleAdd() {
         const make = document.getElementById('addMake').value.trim(), sn = document.getElementById('addSn').value.trim();
-        if(stock.some(s => s.serial === sn)) return alert("🚫 Duplicate Serial Blocked!");
+        if(stock.some(s => s.serial === sn)) return alert("🚫 Duplicate Serial!");
         if(make && sn) { stock.push({ make: make, model: document.getElementById('addModel').value.trim(), serial: sn, status: 'Available' }); pushData(); }
     }
 
@@ -243,6 +244,10 @@
         document.getElementById('viewIssue').style.display = p==='issue'?'block':'none';
         document.getElementById('viewWarehouse').style.display = p==='warehouse'?'block':'none';
         document.getElementById('viewAdmin').style.display = p==='admin'?'block':'none';
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        if(p==='issue') document.getElementById('t1').classList.add('active');
+        if(p==='warehouse') document.getElementById('t2').classList.add('active');
+        if(p==='admin') document.getElementById('tAdmin').classList.add('active');
     }
     function exportXLS() { XLSX.writeFile(XLSX.utils.book_new().appendChild(XLSX.utils.json_to_sheet(logs), "Log"), "QB_Report.xlsx"); }
 </script>
